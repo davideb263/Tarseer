@@ -83,6 +83,20 @@ class TestPattern(unittest.TestCase):
         self.assertTrue(re.fullmatch(pattern, "sparrowwallet-2.5.0-x86_64.tar.gz"))
         self.assertFalse(re.fullmatch(pattern, "sparrowwallet-2.5.0-aarch64.tar.gz"))
 
+    def test_wildcard_does_not_match_other_variants(self):
+        pattern = pattern_from_name("app-1.2-x86_64.tar.gz", "v1.2")
+        for variant in ("app-1.3-musl-x86_64.tar.gz", "app-1.3-debug-x86_64.tar.gz", "app-1.3_lts-x86_64.tar.gz"):
+            self.assertFalse(re.fullmatch(pattern, variant), variant)
+        found = match_asset(assets("app-1.3-musl-x86_64.tar.gz", "app-1.3-x86_64.tar.gz"), pattern)
+        self.assertEqual(found.name, "app-1.3-x86_64.tar.gz")
+
+    def test_wildcard_follows_version_shape(self):
+        pattern = pattern_from_name("tool-2024-05-01-linux.tar.gz", "2024-05-01")
+        self.assertTrue(re.fullmatch(pattern, "tool-2024-06-12-linux.tar.gz"))
+        pattern = pattern_from_name("tool-1.0b3-linux.tar.gz", "v1.0b3")
+        self.assertTrue(re.fullmatch(pattern, "tool-1.1b1-linux.tar.gz"))
+        self.assertTrue(re.fullmatch(pattern, "tool-2-linux.tar.gz"))
+
     def test_version_not_in_name_falls_back_to_dotted_numbers(self):
         pattern = pattern_from_name("tool_1.2.3_linux_x86_64.tar.gz", "release-2024-05")
         self.assertTrue(re.fullmatch(pattern, "tool_1.3_linux_x86_64.tar.gz"))

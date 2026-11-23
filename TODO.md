@@ -11,7 +11,7 @@ found while working.
   - [x] 2. `x86-64` (hyphen) rejected as i686 on x86_64
   - [x] 3. Details: changing the repo keeps the old repo's pending release on the row
   - [x] 4. `install`: launcher/config failure after extract leaves app half-registered
-  - [ ] 5. Saved asset pattern's `.+?` can match another variant (`-musl`, `-debug`)
+  - [x] 5. Saved asset pattern's `.+?` can match another variant (`-musl`, `-debug`)
   - [ ] 6. Rollback doesn't revalidate executable/icon; `previous_tag=None` → "not installed"
   - [ ] 7. `installer.rollback`/`install_archive`: no recovery if a rename fails midway
   - [ ] 8. Disk work on the GTK main loop (set_launcher/set_name/set_repo, LauncherChoices.load)

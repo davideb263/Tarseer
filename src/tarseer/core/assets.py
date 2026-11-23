@@ -96,15 +96,29 @@ def _version_from_tag(tag: str) -> str:
     return re.sub(r"^[^0-9]*", "", tag)
 
 
+def _version_wildcard(version: str) -> str:
+    """A character class matching versions shaped like `version`.
+
+    Only allows what the version itself contains (plus digits and dots), so
+    '1.2' -> '[0-9.]+' won't swallow a variant suffix such as '1.3-musl'.
+    """
+    chars = "0-9."
+    if any(c.isalpha() for c in version):
+        chars += "A-Za-z"
+    for c in sorted({c for c in version if not c.isalnum() and c != "."}):
+        chars += re.escape(c)
+    return f"[{chars}]+"
+
+
 def pattern_from_name(name: str, tag: str) -> str:
     """Turn a concrete file name into a regex that also matches future releases.
 
-    'calibre-8.1.0-x86_64.txz' (tag v8.1.0) -> '^calibre\\-.+?\\-x86_64\\.txz$'
+    'calibre-8.1.0-x86_64.txz' (tag v8.1.0) -> '^calibre\\-[0-9.]+\\-x86_64\\.txz$'
     """
     version = _version_from_tag(tag)
     if version and version in name:
         parts = name.split(version)
-        return "^" + ".+?".join(re.escape(p) for p in parts) + "$"
+        return "^" + _version_wildcard(version).join(re.escape(p) for p in parts) + "$"
     # Version not literally in the name: wildcard every dotted number instead.
     out, last = [], 0
     for m in re.finditer(r"\d+(?:\.\d+)+", name):

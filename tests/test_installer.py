@@ -1,3 +1,4 @@
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -71,6 +72,57 @@ class InstallerTest(unittest.TestCase):
             with self.assertRaises(InstallError):
                 installer.install_archive(v2, self.target)
         self.assertEqual((self.target / "app").read_bytes(), b"1")
+
+    def fail_rename(self, src_name, dst_name):
+        """Patch os.rename to fail for one src -> dst move (by base name)."""
+        real_rename = installer.os.rename
+
+        def rename(src, dst):
+            if (Path(src).name, Path(dst).name) == (src_name, dst_name):
+                raise OSError("EBUSY")
+            return real_rename(src, dst)
+
+        return mock.patch.object(installer.os, "rename", side_effect=rename)
+
+    def state(self):
+        """(current, backup) app contents; None where missing."""
+        read = lambda d: (d / "app").read_bytes() if d.exists() else None  # noqa: E731
+        return read(self.target), read(installer.backup_path(self.target))
+
+    def install_v1_v2(self):
+        for v in (b"1", b"2"):
+            installer.install_archive(make_tarball(self.tmp / f"{v.decode()}.tar.gz", {"app": v}), self.target)
+
+    def test_failed_swap_keeps_old_backup(self):
+        self.install_v1_v2()
+        v3 = make_tarball(self.tmp / "3.tar.gz", {"app": b"3"})
+        with self.fail_rename("extracted", "app"):  # flat archive: root is "extracted"
+            with self.assertRaises(InstallError):
+                installer.install_archive(v3, self.target)
+        self.assertEqual(self.state(), (b"2", b"1"))
+        self.assertEqual(self.leftovers(), [])
+
+    def test_failed_rollback_steps_restore_state(self):
+        self.install_v1_v2()
+        for step in (("app.bak", "app"), ("app.swap", "app.bak")):
+            with self.subTest(step), self.fail_rename(*step):
+                with self.assertRaises(InstallError):
+                    installer.rollback(self.target)
+            self.assertEqual(self.state(), (b"2", b"1"))
+            self.assertFalse(self.root.joinpath("app.swap").exists())
+
+    def test_interrupted_rollback_is_recovered(self):
+        self.install_v1_v2()
+        swap = self.root / "app.swap"
+        # Stopped after moving the current version aside.
+        os.rename(self.target, swap)
+        installer.rollback(self.target)
+        self.assertEqual(self.state(), (b"1", b"2"))
+        # Stopped after the backup moved in, before the old current became the backup.
+        os.rename(installer.backup_path(self.target), swap)
+        installer.rollback(self.target)
+        self.assertEqual(self.state(), (b"2", b"1"))
+        self.assertFalse(swap.exists())
 
     def test_unsafe_archives_rejected(self):
         for name, kwargs in {

@@ -3,6 +3,7 @@
 Layout for an app with id "calibre":
     <install_root>/calibre/       current version
     <install_root>/calibre.bak/   previous version (rollback target)
+    <install_root>/calibre.swap/  only while rolling back (recovered if left over)
     <install_root>/.tarseer-*     temporary staging dirs (same filesystem, so
                                   the final swap is an instant rename)
 """
@@ -26,6 +27,23 @@ def backup_path(target: Path) -> Path:
 
 def has_backup(target: Path) -> bool:
     return backup_path(target).is_dir()
+
+
+def _swap_path(target: Path) -> Path:
+    return target.with_name(target.name + ".swap")
+
+
+def _recover(target: Path) -> None:
+    """Put back a version left in `.swap` by an interrupted rollback."""
+    swap = _swap_path(target)
+    if not swap.exists():
+        return
+    if not target.exists():
+        os.rename(swap, target)  # stopped before the backup moved in
+    elif not backup_path(target).exists():
+        os.rename(swap, backup_path(target))  # stopped before the last step
+    else:
+        shutil.rmtree(swap)  # every version is in place: just a stale copy
 
 
 def extract_tarball(archive: Path, dest: Path) -> None:
@@ -54,9 +72,10 @@ def install_archive(archive: Path, target: Path) -> bool:
     """Replace `target` with the contents of `archive`.
 
     The current install (if any) becomes the backup. On any failure the
-    current install is left untouched. Returns True if a backup was made.
+    current install and backup are left untouched. Returns True if a backup was made.
     """
     target.parent.mkdir(parents=True, exist_ok=True)
+    _recover(target)
     staging = Path(tempfile.mkdtemp(prefix=f".tarseer-{target.name}-", dir=target.parent))
     try:
         extracted = staging / "extracted"
@@ -70,15 +89,23 @@ def install_archive(archive: Path, target: Path) -> bool:
 
         backup = backup_path(target)
         had_old = target.exists()
-        if had_old:
-            if backup.exists():
-                shutil.rmtree(backup)
-            os.rename(target, backup)
+        # The old backup waits in staging (deleted with it) until the new
+        # version is in place, so a failed move can restore everything.
+        old_backup = staging / "old-backup"
+        moved_backup = moved_current = False
         try:
+            if had_old:
+                if backup.exists():
+                    os.rename(backup, old_backup)
+                    moved_backup = True
+                os.rename(target, backup)
+                moved_current = True
             os.rename(root, target)
         except OSError as e:
-            if had_old:
+            if moved_current:
                 os.rename(backup, target)
+            if moved_backup:
+                os.rename(old_backup, backup)
             raise InstallError(f"Could not move new version into place: {e}") from e
         return had_old
     finally:
@@ -87,20 +114,30 @@ def install_archive(archive: Path, target: Path) -> bool:
 
 def rollback(target: Path) -> None:
     """Swap the current install with its backup. Running it twice undoes it."""
+    _recover(target)
     backup = backup_path(target)
     if not backup.is_dir():
         raise InstallError("No previous version to roll back to")
-    swap = target.with_name(target.name + ".swap")
-    if swap.exists():
-        shutil.rmtree(swap)
-    if target.exists():
+    swap = _swap_path(target)
+    had_current = target.exists()
+    if had_current:
         os.rename(target, swap)
-    os.rename(backup, target)
-    if swap.exists():
-        os.rename(swap, backup)
+    try:
+        os.rename(backup, target)
+    except OSError as e:
+        if had_current:
+            os.rename(swap, target)
+        raise InstallError(f"Could not switch versions: {e}") from e
+    if had_current:
+        try:
+            os.rename(swap, backup)
+        except OSError as e:
+            os.rename(target, backup)
+            os.rename(swap, target)
+            raise InstallError(f"Could not switch versions: {e}") from e
 
 
 def remove(target: Path) -> None:
-    for path in (target, backup_path(target)):
+    for path in (target, backup_path(target), _swap_path(target)):
         if path.exists() or path.is_symlink():
             shutil.rmtree(path)

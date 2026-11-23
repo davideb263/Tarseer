@@ -6,7 +6,17 @@ found while working.
 
 ## Next up
 - [ ] **Code review of v1:** run `/code-review src/` in a fresh session and fix
-      what's worth fixing.
+      what's worth fixing. Findings (2026-11-23):
+  - [x] 1. Goreleaser `_`-separated names (`tool_1.2.3_linux_x86_64`) not tokenized
+  - [x] 2. `x86-64` (hyphen) rejected as i686 on x86_64
+  - [ ] 3. Details: changing the repo keeps the old repo's pending release on the row
+  - [ ] 4. `install`: launcher/config failure after extract leaves app half-registered
+  - [ ] 5. Saved asset pattern's `.+?` can match another variant (`-musl`, `-debug`)
+  - [ ] 6. Rollback doesn't revalidate executable/icon; `previous_tag=None` → "not installed"
+  - [ ] 7. `installer.rollback`/`install_archive`: no recovery if a rename fails midway
+  - [ ] 8. Disk work on the GTK main loop (set_launcher/set_name/set_repo, LauncherChoices.load)
+  - [ ] 9. Actionable errors shown as toasts instead of `Adw.AlertDialog`
+  - [ ] 10. `%` not escaped as `%%` in desktop Exec
 - [ ] **Real app icon** to replace the placeholder in `data/icons/`.
 - [ ] **Homepage/repo URL** in the metainfo (`url type="homepage"`) and About
       dialog, once the project is published on GitHub.

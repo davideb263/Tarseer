@@ -41,8 +41,15 @@ def is_tarball(name: str) -> bool:
     return name.lower().endswith(TARBALL_SUFFIXES)
 
 
+# Arch spellings that contain a separator; collapsed to one token before splitting.
+_COMPOUND_ARCH = ((re.compile(r"x86[-_]64"), "amd64"), (re.compile(r"aarch[-_]64"), "aarch64"))
+
+
 def _tokens(name: str) -> set[str]:
-    return {t for t in re.split(r"[^a-z0-9_]+", name.lower()) if t}
+    name = name.lower()
+    for regex, token in _COMPOUND_ARCH:
+        name = regex.sub(token, name)
+    return {t for t in re.split(r"[^a-z0-9]+", name) if t}
 
 
 def score_asset(name: str, machine: str | None = None, repo: str | None = None) -> int | None:
@@ -69,8 +76,7 @@ def score_asset(name: str, machine: str | None = None, repo: str | None = None) 
     if tokens & UNWANTED_TOKENS:
         score -= 20
     if repo:
-        names = {part.lower() for part in repo.split("/")}
-        if tokens & names:
+        if tokens & _tokens(repo):
             score += 3
     return score
 

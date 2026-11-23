@@ -44,6 +44,26 @@ class TestSelection(unittest.TestCase):
         self.assertIsNone(score_asset("tool-1.0-windows-x64.tar.gz", "x86_64"))
         self.assertLess(score_asset("tool-1.0-src.tar.gz", "x86_64"), score_asset("tool-1.0-linux.tar.gz", "x86_64"))
 
+    def test_goreleaser_underscore_names(self):
+        release = assets(
+            "tool_1.2.3_darwin_amd64.tar.gz", "tool_1.2.3_darwin_arm64.tar.gz",
+            "tool_1.2.3_linux_arm64.tar.gz", "tool_1.2.3_linux_x86_64.tar.gz",
+        )
+        names = [a.name for a in candidate_assets(release, "x86_64")]
+        self.assertEqual(names, ["tool_1.2.3_linux_x86_64.tar.gz"])
+        names = [a.name for a in candidate_assets(release, "aarch64")]
+        self.assertEqual(names, ["tool_1.2.3_linux_arm64.tar.gz"])
+
+    def test_hyphenated_x86_64(self):
+        release = assets("app-1.0-linux-i686.tar.gz", "app-1.0-linux-x86-64.tar.gz")
+        self.assertEqual(candidate_assets(release, "x86_64")[0].name, "app-1.0-linux-x86-64.tar.gz")
+        self.assertIsNone(score_asset("app-1.0-linux-x86-64.tar.gz", "i686"))
+        self.assertIsNotNone(score_asset("protoc-1.0-linux-aarch_64.tar.gz", "aarch64"))
+
+    def test_repo_bonus_with_underscore_repo_name(self):
+        release = assets("other-1.0-x86_64.tar.gz", "my_tool-1.0-x86_64.tar.gz")
+        self.assertEqual(candidate_assets(release, "x86_64", repo="me/my_tool")[0].name, "my_tool-1.0-x86_64.tar.gz")
+
     def test_amd64_alias(self):
         self.assertEqual(
             candidate_assets(assets("t-linux-arm64.tar.gz", "t-linux-amd64.tar.gz"), "AMD64")[0].name,

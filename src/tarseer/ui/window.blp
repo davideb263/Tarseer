@@ -9,6 +9,13 @@ template $TarseerWindow: Adw.ApplicationWindow {
   content: Adw.ToolbarView {
     [top]
     Adw.HeaderBar {
+      [start]
+      Button {
+        icon-name: "view-refresh-symbolic";
+        tooltip-text: _("Check for Updates");
+        action-name: "win.check-updates";
+      }
+
       [end]
       MenuButton {
         primary: true;
@@ -18,22 +25,62 @@ template $TarseerWindow: Adw.ApplicationWindow {
       }
     }
 
-    content: Adw.StatusPage {
-      icon-name: "package-x-generic-symbolic";
-      title: _("No Apps Yet");
-      description: _("Add a GitHub repository to install its tarball releases and keep them up to date");
+    content: Adw.ToastOverlay toast_overlay {
+      child: Stack main_stack {
+        transition-type: crossfade;
 
-      child: Button {
-        label: _("_Add App");
-        use-underline: true;
-        halign: center;
-        // Wired up in milestone 4 (add-app dialog).
-        action-name: "win.add-app";
+        StackPage {
+          name: "empty";
+          child: Adw.StatusPage {
+            icon-name: "package-x-generic-symbolic";
+            title: _("No Apps Yet");
+            description: _("Add a GitHub repository to install its tarball releases and keep them up to date");
 
-        styles [
-          "pill",
-          "suggested-action",
-        ]
+            child: Button {
+              label: _("_Add App");
+              use-underline: true;
+              halign: center;
+              // Wired up in milestone 4 (add-app dialog).
+              action-name: "win.add-app";
+
+              styles [
+                "pill",
+                "suggested-action",
+              ]
+            };
+          };
+        }
+
+        StackPage {
+          name: "list";
+          child: ScrolledWindow {
+            hscrollbar-policy: never;
+
+            child: Adw.Clamp {
+              margin-top: 24;
+              margin-bottom: 24;
+              margin-start: 12;
+              margin-end: 12;
+
+              child: ListBox list_box {
+                selection-mode: none;
+                valign: start;
+
+                styles [
+                  "boxed-list",
+                ]
+              };
+            };
+          };
+        }
+
+        StackPage {
+          name: "error";
+          child: Adw.StatusPage error_page {
+            icon-name: "dialog-error-symbolic";
+            title: _("Could Not Load Your Apps");
+          };
+        }
       };
     };
   };

@@ -12,6 +12,12 @@ Python + PyGObject, GTK4 + libadwaita 1.10, Blueprint UI files, Meson, Flatpak
 - Build + install + run:
   `flatpak-builder --user --install --force-clean build-dir io.github.davideb263.Tarseer.json && flatpak run io.github.davideb263.Tarseer`
 - Unit tests (host, no GTK needed): `PYTHONPATH=src python3 -m unittest discover -s tests -t .`
+- Dev sandbox: `TARSEER_DEV_ROOT=<dir>` redirects install root, menu entries and
+  config into `<dir>` (never test against the real `~/.local/opt`). The Flatpak
+  needs access: `flatpak run --filesystem=<dir> --env=TARSEER_DEV_ROOT=<dir> io.github.davideb263.Tarseer`
+- Screenshots for checking UI changes: `tools/dev_screenshot.py` (usage in its
+  docstring; supports `--check`, `--update <id>`, `--progress-shot`). Read the PNG
+  to verify layout instead of assuming it looks right.
 - `meson`/`blueprint-compiler` are NOT on the host (Bluefin); they exist only inside
   `org.gnome.Sdk//51`. To run an SDK tool: `flatpak run --filesystem="$PWD" --command=<tool> org.gnome.Sdk//51 ...`
 

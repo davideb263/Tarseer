@@ -1,0 +1,75 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $TarseerAppRow: Adw.ActionRow {
+  use-markup: false;
+
+  [prefix]
+  Image icon {
+    pixel-size: 32;
+    icon-name: "application-x-executable";
+  }
+
+  [suffix]
+  Stack state_stack {
+    valign: center;
+    hhomogeneous: false;
+    transition-type: crossfade;
+
+    StackPage {
+      name: "none";
+      child: Box {};
+    }
+
+    StackPage {
+      name: "checking";
+      child: Adw.Spinner {
+        tooltip-text: _("Checking for updates…");
+      };
+    }
+
+    StackPage {
+      name: "update";
+      child: Button {
+        label: _("Update");
+        valign: center;
+        clicked => $on_update_clicked();
+
+        styles [
+          "suggested-action",
+        ]
+      };
+    }
+
+    StackPage {
+      name: "progress";
+      child: ProgressBar progress_bar {
+        width-request: 120;
+        valign: center;
+      };
+    }
+
+    StackPage {
+      name: "current";
+      child: Image {
+        icon-name: "object-select-symbolic";
+        tooltip-text: _("Up to date");
+
+        styles [
+          "success",
+        ]
+      };
+    }
+
+    StackPage {
+      name: "error";
+      child: Image error_icon {
+        icon-name: "dialog-warning-symbolic";
+
+        styles [
+          "warning",
+        ]
+      };
+    }
+  }
+}

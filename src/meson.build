@@ -1,6 +1,7 @@
 blueprints = custom_target('blueprints',
   input: files(
     'tarseer/ui/window.blp',
+    'tarseer/ui/app_row.blp',
   ),
   output: '.',
   command: [find_program('blueprint-compiler'), 'batch-compile', '@OUTPUT@', '@CURRENT_SOURCE_DIR@', '@INPUT@'],

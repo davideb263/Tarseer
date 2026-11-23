@@ -8,7 +8,23 @@ from pathlib import Path
 from unittest import mock
 
 from tarseer.core import config, github
-from tarseer.core.models import ManagedApp
+from tarseer.core.models import ManagedApp, Paths
+
+
+class PathsTest(unittest.TestCase):
+    def test_dev_root_override(self):
+        with mock.patch.dict("os.environ", {"TARSEER_DEV_ROOT": "/dev-root"}):
+            paths = Paths.default()
+        self.assertEqual(paths.install_root, Path("/dev-root/opt"))
+        self.assertEqual(paths.config_file, Path("/dev-root/config/apps.json"))
+
+    def test_real_paths_ignore_xdg_data_home(self):
+        env = {"XDG_DATA_HOME": "/sandbox/data", "XDG_CONFIG_HOME": "/sandbox/config"}
+        with mock.patch.dict("os.environ", env), mock.patch.dict("os.environ", {}, clear=False) as e:
+            e.pop("TARSEER_DEV_ROOT", None)
+            paths = Paths.default()
+        self.assertEqual(paths.applications_dir, Path.home() / ".local/share/applications")
+        self.assertEqual(paths.config_file, Path("/sandbox/config/tarseer/apps.json"))
 
 
 class ConfigTest(unittest.TestCase):

@@ -1,6 +1,7 @@
 #!@PYTHON@
 """Launcher installed as `tarseer`. Meson fills in the @...@ placeholders."""
 
+import gettext
 import os
 import signal
 import sys
@@ -11,6 +12,8 @@ pkgdatadir = "@pkgdatadir@"
 
 sys.path.insert(1, pkgdatadir)
 signal.signal(signal.SIGINT, signal.SIG_DFL)
+# Defines the builtins _() and ngettext() used for translatable strings.
+gettext.install("tarseer", names=["ngettext"])
 
 if __name__ == "__main__":
     from gi.repository import Gio

@@ -95,6 +95,8 @@ def get_latest_release(repo: str, timeout: float = 15) -> Release:
         with _urlopen(_request(url, "application/vnd.github+json"), timeout=timeout) as resp:
             return release_from_json(json.load(resp))
     except urllib.error.HTTPError as e:
+        if e.code == 404:
+            raise NotFoundError(f"{repo} has no releases, or the repository does not exist") from e
         raise _translate_http_error(e, f"Latest release of {repo}") from e
     except urllib.error.URLError as e:
         raise GitHubError(f"Network error: {e.reason}") from e

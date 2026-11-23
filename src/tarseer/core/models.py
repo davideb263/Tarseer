@@ -17,6 +17,10 @@ class Paths:
 
     @classmethod
     def default(cls) -> "Paths":
+        # Development: keep everything inside one throwaway folder.
+        if dev_root := os.environ.get("TARSEER_DEV_ROOT"):
+            root = Path(dev_root)
+            return cls(root / "opt", root / "applications", root / "config" / "apps.json")
         home = Path.home()
         # Inside Flatpak, XDG_CONFIG_HOME points to ~/.var/app/<id>/config,
         # which is exactly where our own config should live.

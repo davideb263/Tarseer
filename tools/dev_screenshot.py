@@ -66,6 +66,8 @@ def wait_for(condition, then, interval=300):
     def poll():
         if time.monotonic() - started > args.timeout:
             print("timeout", file=sys.stderr)
+            if app.get_active_window():  # show where it got stuck (e.g. an error alert)
+                screenshot(app.get_active_window(), args.out)
             app.quit()
             return GLib.SOURCE_REMOVE
         if not condition():

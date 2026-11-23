@@ -14,3 +14,10 @@ def show_launcher_warnings(parent: Gtk.Widget, warnings: list[str]) -> None:
     )
     dialog.add_response("ok", _("_OK"))
     dialog.present(parent)
+
+
+def show_error(parent: Gtk.Widget, heading: str, error: Exception | str) -> None:
+    """An error the user has to read in full or act on (toasts cut it off)."""
+    dialog = Adw.AlertDialog(heading=heading, body=str(error))
+    dialog.add_response("ok", _("_OK"))
+    dialog.present(parent)

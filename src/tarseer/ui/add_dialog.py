@@ -9,7 +9,7 @@ from ..core import github
 from ..core.assets import candidate_assets, is_tarball, pattern_from_name
 from ..core.manager import AppManager
 from ..core.models import Asset, ManagedApp, Release
-from .alerts import show_launcher_warnings
+from .alerts import show_error, show_launcher_warnings
 from .launcher_choices import LauncherChoices
 from .tasks import ThrottledProgress, run_task
 
@@ -93,7 +93,7 @@ class AddDialog(Adw.Dialog):
         def on_error(error: Exception):
             done()
             self.repo_entry.add_css_class("error")
-            self.toast(str(error))
+            show_error(self, _("Could Not Look Up Releases"), error)
 
         run_task(self.manager.fetch_latest, repo, on_success=on_success, on_error=on_error)
 
@@ -174,7 +174,7 @@ class AddDialog(Adw.Dialog):
         def on_error(error: Exception):
             self.set_can_close(True)
             self.nav.pop_to_tag("asset")
-            self.toast(_("Installation failed: {error}").format(error=error))
+            show_error(self, _("Installation Failed"), error)
 
         run_task(self.manager.install, app, release, ThrottledProgress(on_progress),
                  on_success=on_success, on_error=on_error)

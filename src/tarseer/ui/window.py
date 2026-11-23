@@ -6,7 +6,7 @@ from ..core.config import ConfigError
 from ..core.manager import AppManager
 from ..core.models import ManagedApp, Release
 from .add_dialog import AddDialog
-from .alerts import show_launcher_warnings
+from .alerts import show_error, show_launcher_warnings
 from .details_dialog import DetailsDialog
 from .app_row import AppRow
 
@@ -72,6 +72,7 @@ class TarseerWindow(Adw.ApplicationWindow):
             if row is None:
                 row = AppRow(self.manager, app)
                 row.connect("notify-user", lambda _row, msg: self.toast(msg))
+                row.connect("show-error", lambda _row, heading, body: show_error(self, heading, body))
                 row.connect("launcher-warnings", lambda _row, w: show_launcher_warnings(self, w))
             self.rows_by_id[app.id] = row
             self.list_box.append(row)

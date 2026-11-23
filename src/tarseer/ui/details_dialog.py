@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from gi.repository import Adw, Gio, GObject, Gtk
+from gi.repository import Adw, Gio, GLib, GObject, Gtk
 
 from ..core import github
 from ..core.manager import AppManager
 from ..core.models import ManagedApp
-from .alerts import show_launcher_warnings
+from .alerts import show_error, show_launcher_warnings
 from .launcher_choices import LauncherChoices
 from .tasks import run_task
 
@@ -123,7 +123,7 @@ class DetailsDialog(Adw.Dialog):
 
         def on_error(error: Exception):
             self._finish()
-            self.toast(str(error))
+            show_error(self, _("Name Not Changed"), error)
             self.name_row.set_text(self.app.name)
 
         run_task(self.manager.set_name, self.app, self.name_row.get_text(),
@@ -160,7 +160,7 @@ class DetailsDialog(Adw.Dialog):
         def on_error(error: Exception):
             self.repo_row.set_sensitive(True)
             self._finish()
-            self.toast(_("Not changed: {error}").format(error=error))
+            show_error(self, _("Repository Not Changed"), error)
 
         run_task(check_and_set, on_success=on_success, on_error=on_error)
 
@@ -181,7 +181,7 @@ class DetailsDialog(Adw.Dialog):
         def on_error(error: Exception):
             self._finish()
             self.refresh()
-            self.toast(_("Could not switch versions: {error}").format(error=error))
+            show_error(self, _("Could Not Switch Versions"), error)
 
         run_task(self.manager.rollback, self.app, on_success=on_success, on_error=on_error)
 
@@ -213,8 +213,10 @@ class DetailsDialog(Adw.Dialog):
         def done(launcher, result):
             try:
                 launcher.launch_finish(result)
-            except Exception as e:  # noqa: BLE001
-                self.toast(_("Could not open the folder: {error}").format(error=e))
+            except GLib.Error as e:
+                if e.matches(Gtk.DialogError.quark(), Gtk.DialogError.DISMISSED):
+                    return  # the user cancelled an app chooser
+                show_error(self, _("Could Not Open the Folder"), e)
 
         Gtk.FileLauncher.new(folder).launch(self.get_root(), None, done)
 
@@ -253,6 +255,6 @@ class DetailsDialog(Adw.Dialog):
             self.set_can_close(True)
             self._finish()
             self.refresh()
-            self.toast(_("Could not remove {name}: {error}").format(name=app.name, error=error))
+            show_error(self, _("Could Not Remove {name}").format(name=app.name), error)
 
         run_task(self.manager.remove, app, on_success=on_success, on_error=on_error)

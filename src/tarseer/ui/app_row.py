@@ -19,6 +19,8 @@ class AppRow(Adw.ActionRow):
     __gsignals__ = {
         # Human-readable message for the window to show as a toast.
         "notify-user": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
+        # (heading, body): an error to show in full in an alert.
+        "show-error": (GObject.SignalFlags.RUN_FIRST, None, (str, str)),
         # list[str] of app grid entry problems the user has to fix.
         "launcher-warnings": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
     }
@@ -140,7 +142,7 @@ class AppRow(Adw.ActionRow):
 
         def on_error(error: Exception):
             self._error = str(error)
-            self.emit("notify-user", _("Could not update {app}: {error}").format(app=self.app.name, error=error))
+            self.emit("show-error", _("Could Not Update {app}").format(app=self.app.name), str(error))
             finish()
 
         run_task(self.manager.install, self.app, release, ThrottledProgress(on_progress),

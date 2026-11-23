@@ -15,7 +15,7 @@ found while working.
   - [x] 6. Rollback doesn't revalidate executable/icon; `previous_tag=None` → "not installed"
   - [x] 7. `installer.rollback`/`install_archive`: no recovery if a rename fails midway
   - [x] 8. Disk work on the GTK main loop (set_launcher/set_name/set_repo, LauncherChoices.load)
-  - [ ] 9. Actionable errors shown as toasts instead of `Adw.AlertDialog`
+  - [x] 9. Actionable errors shown as toasts instead of `Adw.AlertDialog`
   - [ ] 10. `%` not escaped as `%%` in desktop Exec
 - [ ] **Real app icon** to replace the placeholder in `data/icons/`.
 - [ ] **Homepage/repo URL** in the metainfo (`url type="homepage"`) and About
@@ -50,8 +50,9 @@ found while working.
 ## Known issues / polish
 - [ ] Icon dropdown shows long paths truncated (`resources/images/calib…`);
       consider showing the file name with the folder as subtitle.
-- [ ] Long error messages in toasts get cut off (full text is in the row's ⚠
-      tooltip). Consider an "error details" action.
+- [ ] "Check for updates" errors are still toasts (one alert per app would
+      pile up), so long ones get cut off; the full text is only in the row's ⚠
+      tooltip. Consider an "error details" action.
 - [ ] The "Open Folder" button has not been tested by Claude (it would open a
       window on the user's desktop); verified manually: ☐
 - [ ] Changing the repository keeps the old release file pattern; if the new

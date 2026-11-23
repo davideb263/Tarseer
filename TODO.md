@@ -14,7 +14,7 @@ found while working.
   - [x] 5. Saved asset pattern's `.+?` can match another variant (`-musl`, `-debug`)
   - [x] 6. Rollback doesn't revalidate executable/icon; `previous_tag=None` → "not installed"
   - [x] 7. `installer.rollback`/`install_archive`: no recovery if a rename fails midway
-  - [ ] 8. Disk work on the GTK main loop (set_launcher/set_name/set_repo, LauncherChoices.load)
+  - [x] 8. Disk work on the GTK main loop (set_launcher/set_name/set_repo, LauncherChoices.load)
   - [ ] 9. Actionable errors shown as toasts instead of `Adw.AlertDialog`
   - [ ] 10. `%` not escaped as `%%` in desktop Exec
 - [ ] **Real app icon** to replace the placeholder in `data/icons/`.

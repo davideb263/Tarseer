@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Callable
 
 from gi.repository import Adw, Gio, Gtk
 
 from ..core import desktop
 from ..core.models import ManagedApp
+from .tasks import run_task
 
 
 class LauncherChoices:
@@ -17,10 +19,32 @@ class LauncherChoices:
         self.install_dir: Path | None = None
         self.executables: list[str] = []
         self.icons: list[str | None] = []
+        self._generation = 0
 
-    def load(self, install_dir: Path, app: ManagedApp) -> None:
+    def load(self, install_dir: Path, app: ManagedApp, done: Callable[[], None] | None = None) -> None:
+        """Scan `install_dir` in a worker thread, then fill the rows and call
+        `done` on the main loop. A newer load() supersedes a pending one."""
+        self._generation += 1
+        generation = self._generation
+        hint = app.name
+
+        def scan():
+            return desktop.rank_executables(install_dir, hint), desktop.rank_icons(install_dir, hint)
+
+        def on_success(result):
+            if generation == self._generation:
+                self._fill(install_dir, app, *result)
+                if done:
+                    done()
+
+        def on_error(_error: Exception):  # unreadable folder: offer nothing
+            on_success(([], []))
+
+        run_task(scan, on_success=on_success, on_error=on_error)
+
+    def _fill(self, install_dir: Path, app: ManagedApp, executables: list[str], icons: list[str]) -> None:
         self.install_dir = install_dir
-        self.executables = desktop.rank_executables(install_dir, app.name)
+        self.executables = executables
         if app.executable and app.executable not in self.executables:
             self.executables.insert(0, app.executable)
         if self.executables:
@@ -33,7 +57,6 @@ class LauncherChoices:
             self.exec_row.set_sensitive(False)
             self.exec_row.set_subtitle(_("No programs found, so there is no app grid entry"))
 
-        icons = desktop.rank_icons(install_dir, app.name)
         self.icons = [None, *icons]
         self.icon_row.set_model(Gtk.StringList.new([_("Generic icon"), *icons]))
         self.icon_row.set_selected(self.icons.index(app.icon) if app.icon in self.icons else 0)

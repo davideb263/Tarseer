@@ -167,11 +167,9 @@ class AddDialog(Adw.Dialog):
                 self.progress_bar.pulse()
 
         def on_success(warnings: list[str]):
-            self.set_can_close(True)
             self.app = app
             self.emit("app-changed", app, release)
-            self._show_review()
-            show_launcher_warnings(self, warnings)
+            self._show_review(warnings)
 
         def on_error(error: Exception):
             self.set_can_close(True)
@@ -182,16 +180,22 @@ class AddDialog(Adw.Dialog):
                  on_success=on_success, on_error=on_error)
 
     # ── Step 4: review ───────────────────────────────────────────────────────
-    def _show_review(self) -> None:
+    def _show_review(self, warnings: list[str]) -> None:
         app = self.app
         install_dir = self.manager.install_dir(app)
         self.review_title.set_label(app.name)
         self.review_subtitle.set_label(_("{tag} installed in {path}").format(
             tag=app.installed_tag, path=str(install_dir).replace(str(Path.home()), "~", 1)))
-        self.launcher.load(install_dir, app)
-        self.launcher.show_icon(self.review_icon)
-        # Replace the stack so "back" can't return to the progress page.
-        self.nav.replace_with_tags(["review"])
+        self.progress_page.set_description(_("Looking for programs and icons…"))
+
+        def loaded():
+            self.set_can_close(True)
+            self.launcher.show_icon(self.review_icon)
+            # Replace the stack so "back" can't return to the progress page.
+            self.nav.replace_with_tags(["review"])
+            show_launcher_warnings(self, warnings)
+
+        self.launcher.load(install_dir, app, done=loaded)
 
     @Gtk.Template.Callback()
     def on_icon_selected(self, *_args) -> None:
@@ -202,11 +206,21 @@ class AddDialog(Adw.Dialog):
     def on_done(self, *_args) -> None:
         app = self.app
         executable, icon = self.launcher.selection()
-        if (executable, icon) != (app.executable, app.icon):
-            try:
-                self.manager.set_launcher(app, executable, icon)
-            except Exception as e:  # noqa: BLE001
-                show_launcher_warnings(self, [str(e)])
-                return
+        if (executable, icon) == (app.executable, app.icon):
+            self.close()
+            return
+        self.nav.set_sensitive(False)
+        self.set_can_close(False)
+
+        def on_success(_result):
+            self.set_can_close(True)
             self.emit("app-changed", app, None)
-        self.close()
+            self.close()
+
+        def on_error(error: Exception):
+            self.nav.set_sensitive(True)
+            self.set_can_close(True)
+            show_launcher_warnings(self, [str(error)])
+
+        run_task(self.manager.set_launcher, app, executable, icon,
+                 on_success=on_success, on_error=on_error)

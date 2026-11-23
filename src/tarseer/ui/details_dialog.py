@@ -56,7 +56,7 @@ class DetailsDialog(Adw.Dialog):
         self.row = row
         self.app: ManagedApp = row.app
         self.launcher = LauncherChoices(self.exec_row, self.icon_row)
-        self._loading = False
+        self._loading = False  # launcher rows are being (re)filled
         self.exec_row.connect("notify::selected", self._on_launcher_changed)
         self.icon_row.connect("notify::selected", self._on_launcher_changed)
         self.refresh()
@@ -81,18 +81,20 @@ class DetailsDialog(Adw.Dialog):
         self.folder_row.set_subtitle(_home_short(install_dir))
 
         self._loading = True
-        try:
-            self.launcher.load(install_dir, app)
-        finally:
-            self._loading = False
+        self._update_sensitivity()
+        self.launcher.load(install_dir, app, done=self._on_launcher_loaded)
+
+    def _on_launcher_loaded(self) -> None:
+        self._loading = False
         self.launcher.show_icon(self.icon)
         self._update_sensitivity()
 
     def _update_sensitivity(self) -> None:
         busy = self.row.busy
         self.busy_banner.set_revealed(busy)
-        for widget in (self.general_group, self.version_group, self.launcher_group, self.remove_button):
+        for widget in (self.general_group, self.version_group, self.remove_button):
             widget.set_sensitive(not busy)
+        self.launcher_group.set_sensitive(not busy and not self._loading)
 
     def _start(self) -> bool:
         """Claim the app for an operation; False if something else is running."""
@@ -110,14 +112,22 @@ class DetailsDialog(Adw.Dialog):
     # ── General ──────────────────────────────────────────────────────────────
     @Gtk.Template.Callback()
     def on_name_apply(self, *_args) -> None:
-        try:
-            self.manager.set_name(self.app, self.name_row.get_text())
-        except (ValueError, OSError) as e:
-            self.toast(str(e))
+        if not self._start():
             self.name_row.set_text(self.app.name)
             return
-        self.refresh()
-        self.emit("app-changed", self.app, None)
+
+        def on_success(_result):
+            self._finish()
+            self.refresh()
+            self.emit("app-changed", self.app, None)
+
+        def on_error(error: Exception):
+            self._finish()
+            self.toast(str(error))
+            self.name_row.set_text(self.app.name)
+
+        run_task(self.manager.set_name, self.app, self.name_row.get_text(),
+                 on_success=on_success, on_error=on_error)
 
     @Gtk.Template.Callback()
     def on_repo_apply(self, *_args) -> None:
@@ -133,14 +143,15 @@ class DetailsDialog(Adw.Dialog):
             return
         self.repo_row.set_sensitive(False)
 
+        def check_and_set():
+            # Only accept repositories that exist and have releases.
+            release = self.manager.fetch_latest(repo)
+            self.manager.set_repo(self.app, repo)
+            return release
+
         def on_success(release):
             self.repo_row.set_sensitive(True)
             self._finish()
-            try:
-                self.manager.set_repo(self.app, repo)
-            except (ValueError, OSError) as e:
-                self.toast(str(e))
-                return
             self.refresh()
             self.toast(_("Repository changed"))
             # The release just fetched replaces the row's check result from the old repo.
@@ -151,8 +162,7 @@ class DetailsDialog(Adw.Dialog):
             self._finish()
             self.toast(_("Not changed: {error}").format(error=error))
 
-        # Only accept repositories that exist and have releases.
-        run_task(self.manager.fetch_latest, repo, on_success=on_success, on_error=on_error)
+        run_task(check_and_set, on_success=on_success, on_error=on_error)
 
     # ── Version ──────────────────────────────────────────────────────────────
     @Gtk.Template.Callback()
@@ -182,12 +192,18 @@ class DetailsDialog(Adw.Dialog):
         executable, icon = self.launcher.selection()
         if (executable, icon) == (self.app.executable, self.app.icon):
             return
-        try:
-            self.manager.set_launcher(self.app, executable, icon)
-        except Exception as e:  # noqa: BLE001 - conflicts and bad paths alike
-            show_launcher_warnings(self, [str(e)])
-        self.launcher.show_icon(self.icon)
-        self.emit("app-changed", self.app, None)
+        if not self._start():
+            return
+
+        def finish(error: Exception | None = None):
+            self._finish()
+            if error is not None:  # conflicts and bad paths alike
+                show_launcher_warnings(self, [str(error)])
+            self.launcher.show_icon(self.icon)
+            self.emit("app-changed", self.app, None)
+
+        run_task(self.manager.set_launcher, self.app, executable, icon,
+                 on_success=lambda _r: finish(), on_error=finish)
 
     # ── Files ────────────────────────────────────────────────────────────────
     @Gtk.Template.Callback()

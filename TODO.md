@@ -33,6 +33,9 @@ found while working.
 - [ ] **Translations:** strings already use `_()`; set up `po/` and Meson i18n.
 - [ ] **Flathub submission** (needs: real icon, screenshots in metainfo, homepage URL,
       review of `--filesystem` permissions).
+- [ ] **Custom app Icon picking** Let the user pick a custom icon for the .desktop file.
+      Put an option to pick a custom icon near or in the already existing dropdown where
+      you choose between different icons in the app folder.
 
 ## Known issues / polish
 - [ ] Icon dropdown shows long paths truncated (`resources/images/calib…`);

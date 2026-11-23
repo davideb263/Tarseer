@@ -1,0 +1,49 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $TarseerWindow: Adw.ApplicationWindow {
+  title: _("Tarseer");
+  width-request: 360;
+  height-request: 294;
+
+  content: Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar {
+      [end]
+      MenuButton {
+        primary: true;
+        icon-name: "open-menu-symbolic";
+        tooltip-text: _("Main Menu");
+        menu-model: primary_menu;
+      }
+    }
+
+    content: Adw.StatusPage {
+      icon-name: "package-x-generic-symbolic";
+      title: _("No Apps Yet");
+      description: _("Add a GitHub repository to install its tarball releases and keep them up to date");
+
+      child: Button {
+        label: _("_Add App");
+        use-underline: true;
+        halign: center;
+        // Wired up in milestone 4 (add-app dialog).
+        action-name: "win.add-app";
+
+        styles [
+          "pill",
+          "suggested-action",
+        ]
+      };
+    };
+  };
+}
+
+menu primary_menu {
+  section {
+    item {
+      label: _("_About Tarseer");
+      action: "app.about";
+    }
+  }
+}

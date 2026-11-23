@@ -1,0 +1,23 @@
+#!@PYTHON@
+"""Launcher installed as `tarseer`. Meson fills in the @...@ placeholders."""
+
+import os
+import signal
+import sys
+
+VERSION = "@VERSION@"
+APP_ID = "@APP_ID@"
+pkgdatadir = "@pkgdatadir@"
+
+sys.path.insert(1, pkgdatadir)
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+if __name__ == "__main__":
+    from gi.repository import Gio
+
+    resource = Gio.Resource.load(os.path.join(pkgdatadir, "tarseer.gresource"))
+    resource._register()
+
+    from tarseer import main
+
+    sys.exit(main.main(VERSION))

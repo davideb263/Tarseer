@@ -1,0 +1,37 @@
+{
+  "id": "io.github.davideb263.Tarseer",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "51",
+  "sdk": "org.gnome.Sdk",
+  "command": "tarseer",
+  "finish-args": [
+    "--share=network",
+    "--share=ipc",
+    "--socket=wayland",
+    "--socket=fallback-x11",
+    "--device=dri",
+    "--filesystem=~/.local/opt:create",
+    "--filesystem=xdg-data/applications:create"
+  ],
+  "cleanup": [
+    "/include",
+    "/lib/pkgconfig",
+    "/share/pkgconfig",
+    "*.la",
+    "*.a"
+  ],
+  "modules": [
+    {
+      "name": "tarseer",
+      "builddir": true,
+      "buildsystem": "meson",
+      "sources": [
+        {
+          "type": "dir",
+          "path": ".",
+          "skip": ["build-dir", ".flatpak-builder", "repo", "_build"]
+        }
+      ]
+    }
+  ]
+}

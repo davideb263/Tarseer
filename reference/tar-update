@@ -1,0 +1,192 @@
+#!/usr/bin/env bash
+# tar-update — Update manually installed tarball software
+# Usage: tar-update <software>
+# Example: tar-update calibre
+#          tar-update sparrow
+#
+# Install: cp tar-update ~/.local/bin/ && chmod +x ~/.local/bin/tar-update
+
+set -euo pipefail
+
+# ── Software definitions ──────────────────────────────────────────────────────
+#
+# Each software entry defines:
+#   GITHUB_REPO   — owner/repo on GitHub
+#   TARBALL_NAME  — filename pattern; use {VERSION} and {ARCH} as placeholders
+#   TARBALL_EXT   — tar flags for the compression format (z=gz, J=xz, j=bz2)
+#   INSTALL_DIR   — where the final files should live
+#   EXTRACT_MODE  — "flat"   : tarball dumps files directly (e.g. Calibre)
+#                   "subdir" : tarball extracts into its own folder (e.g. Sparrow)
+#   EXTRACT_DIR   — (only for "subdir" mode) the folder name inside the tarball
+#   VERSION_CMD   — command to detect the installed version (use INSTALL_DIR placeholder)
+#   VERSION_REGEX — grep -oP pattern to extract the version number from VERSION_CMD output
+
+declare -A SW_GITHUB_REPO
+declare -A SW_TARBALL_NAME
+declare -A SW_TARBALL_EXT
+declare -A SW_INSTALL_DIR
+declare -A SW_EXTRACT_MODE
+declare -A SW_EXTRACT_DIR
+declare -A SW_VERSION_CMD
+declare -A SW_VERSION_REGEX
+declare -A SW_TAG_PREFIX      # "v" if the GitHub tag is v1.2.3, "" if it's just 1.2.3
+
+# ── Calibre ───────────────────────────────────────────────────────────────────
+SW_GITHUB_REPO[calibre]="kovidgoyal/calibre"
+SW_TARBALL_NAME[calibre]="calibre-{VERSION}-{ARCH}.txz"
+SW_TARBALL_EXT[calibre]="J"          # .xz
+SW_INSTALL_DIR[calibre]="/var/opt/calibre"
+SW_EXTRACT_MODE[calibre]="flat"
+SW_EXTRACT_DIR[calibre]=""           # not used in flat mode
+SW_VERSION_CMD[calibre]="INSTALL_DIR/calibre --version 2>/dev/null"
+SW_VERSION_REGEX[calibre]='\d+\.\d+\.\d+'
+SW_TAG_PREFIX[calibre]="v"             # Calibre tags are v7.x.x
+
+# ── Sparrow ───────────────────────────────────────────────────────────────────
+SW_GITHUB_REPO[sparrow]="sparrowwallet/sparrow"
+SW_TARBALL_NAME[sparrow]="sparrowwallet-{VERSION}-{ARCH}.tar.gz"
+SW_TARBALL_EXT[sparrow]="z"          # .gz
+SW_INSTALL_DIR[sparrow]="/var/opt/Sparrow"
+SW_EXTRACT_MODE[sparrow]="subdir"
+SW_EXTRACT_DIR[sparrow]="Sparrow"    # folder name inside the tarball
+SW_VERSION_CMD[sparrow]="INSTALL_DIR/bin/Sparrow --version 2>/dev/null"
+SW_VERSION_REGEX[sparrow]='\d+\.\d+\.\d+'
+SW_TAG_PREFIX[sparrow]=""              # Sparrow tags have no v prefix (e.g. 2.4.2)
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+ARCH="x86_64"
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+usage() {
+    echo "Usage: tar-update <software>"
+    echo ""
+    echo "Available software:"
+    for key in "${!SW_GITHUB_REPO[@]}"; do
+        echo "  - $key  (installs to ${SW_INSTALL_DIR[$key]})"
+    done
+    exit 1
+}
+
+require_root() {
+    if [[ "$EUID" -ne 0 ]]; then
+        echo "❌  Please run as root: sudo tar-update $SOFTWARE"
+        exit 1
+    fi
+}
+
+get_latest_version() {
+    local repo="$1"
+    local tag
+    tag=$(curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" \
+        | grep '"tag_name"' \
+        | sed 's/.*"tag_name": *"v\?\([^"]*\)".*/\1/')
+    echo "$tag"
+}
+
+get_installed_version() {
+    local cmd="$1"
+    local regex="$2"
+    local install_dir="$3"
+    # Replace placeholder with actual install dir
+    cmd="${cmd/INSTALL_DIR/$install_dir}"
+    eval "$cmd" 2>/dev/null | grep -oP "$regex" | head -1 || true
+}
+
+# ── Argument parsing ──────────────────────────────────────────────────────────
+if [[ $# -ne 1 ]]; then
+    usage
+fi
+
+SOFTWARE="${1,,}"  # lowercase
+
+if [[ -z "${SW_GITHUB_REPO[$SOFTWARE]+_}" ]]; then
+    echo "❌  Unknown software: '$1'"
+    echo ""
+    usage
+fi
+
+# Load config for selected software
+GITHUB_REPO="${SW_GITHUB_REPO[$SOFTWARE]}"
+TARBALL_PATTERN="${SW_TARBALL_NAME[$SOFTWARE]}"
+TARBALL_EXT="${SW_TARBALL_EXT[$SOFTWARE]}"
+INSTALL_DIR="${SW_INSTALL_DIR[$SOFTWARE]}"
+EXTRACT_MODE="${SW_EXTRACT_MODE[$SOFTWARE]}"
+EXTRACT_DIR="${SW_EXTRACT_DIR[$SOFTWARE]}"
+VERSION_CMD="${SW_VERSION_CMD[$SOFTWARE]}"
+VERSION_REGEX="${SW_VERSION_REGEX[$SOFTWARE]}"
+TAG_PREFIX="${SW_TAG_PREFIX[$SOFTWARE]}"
+BACKUP_DIR="${INSTALL_DIR}.bak"
+
+require_root
+
+TMP_DIR="$(mktemp -d)"
+cleanup() { rm -rf "$TMP_DIR"; }
+trap cleanup EXIT
+
+# ── Version check ─────────────────────────────────────────────────────────────
+echo "🔍  Checking latest $SOFTWARE release..."
+
+LATEST_VERSION="$(get_latest_version "$GITHUB_REPO")"
+if [[ -z "$LATEST_VERSION" ]]; then
+    echo "❌  Could not determine latest version from GitHub API."
+    exit 1
+fi
+echo "   Latest version    : $LATEST_VERSION"
+
+CURRENT_VERSION=""
+if [[ -d "$INSTALL_DIR" ]]; then
+    CURRENT_VERSION="$(get_installed_version "$VERSION_CMD" "$VERSION_REGEX" "$INSTALL_DIR")"
+fi
+
+if [[ -n "$CURRENT_VERSION" ]]; then
+    echo "   Installed version : $CURRENT_VERSION"
+    if [[ "$CURRENT_VERSION" == "$LATEST_VERSION" ]]; then
+        echo "✅  Already up to date. Nothing to do."
+        exit 0
+    fi
+else
+    echo "   No existing installation found at $INSTALL_DIR."
+fi
+
+# ── Download ──────────────────────────────────────────────────────────────────
+TARBALL="${TARBALL_PATTERN/\{VERSION\}/$LATEST_VERSION}"
+TARBALL="${TARBALL/\{ARCH\}/$ARCH}"
+DOWNLOAD_URL="https://github.com/${GITHUB_REPO}/releases/download/${TAG_PREFIX}${LATEST_VERSION}/${TARBALL}"
+
+echo ""
+echo "⬇️   Downloading $TARBALL..."
+curl -fL --progress-bar "$DOWNLOAD_URL" -o "$TMP_DIR/$TARBALL"
+
+# ── Backup ────────────────────────────────────────────────────────────────────
+if [[ -d "$INSTALL_DIR" ]]; then
+    echo ""
+    echo "📦  Backing up current installation to $BACKUP_DIR..."
+    rm -rf "$BACKUP_DIR"
+    cp -a "$INSTALL_DIR" "$BACKUP_DIR"
+fi
+
+# ── Install ───────────────────────────────────────────────────────────────────
+echo "📂  Installing to $INSTALL_DIR..."
+mkdir -p "$INSTALL_DIR"
+
+if [[ "$EXTRACT_MODE" == "flat" ]]; then
+    # Tarball dumps files directly — extract straight into INSTALL_DIR
+    tar "-x${TARBALL_EXT}f" "$TMP_DIR/$TARBALL" -C "$INSTALL_DIR"
+
+elif [[ "$EXTRACT_MODE" == "subdir" ]]; then
+    # Tarball extracts into a subfolder — extract to tmp, then move contents
+    tar "-x${TARBALL_EXT}f" "$TMP_DIR/$TARBALL" -C "$TMP_DIR"
+    # Remove current install dir contents and replace with extracted folder
+    rm -rf "$INSTALL_DIR"
+    mv "$TMP_DIR/$EXTRACT_DIR" "$INSTALL_DIR"
+fi
+
+# ── Done ──────────────────────────────────────────────────────────────────────
+echo ""
+echo "✅  $SOFTWARE updated to v${LATEST_VERSION} successfully."
+echo "   Install dir : $INSTALL_DIR"
+[[ -d "$BACKUP_DIR" ]] && echo "   Backup dir  : $BACKUP_DIR"
+echo ""
+echo "   To rollback if something is wrong:"
+echo "     sudo rm -rf $INSTALL_DIR && sudo mv $BACKUP_DIR $INSTALL_DIR"

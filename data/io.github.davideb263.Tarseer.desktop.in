@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Tarseer
+Comment=Install and update apps distributed as tarballs on GitHub
+Exec=tarseer
+Icon=io.github.davideb263.Tarseer
+Terminal=false
+Type=Application
+Categories=GTK;GNOME;Utility;PackageManager;
+Keywords=tarball;tar;github;release;update;installer;
+StartupNotify=true
+DBusActivatable=false

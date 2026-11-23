@@ -1,0 +1,9 @@
+# Flatpak / Meson build output
+build-dir/
+.flatpak-builder/
+repo/
+_build/
+
+# Python
+__pycache__/
+*.pyc

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.davideb263.Tarseer</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Tarseer</name>
+  <summary>Install and update tarball apps from GitHub</summary>
+  <description>
+    <p>
+      Tarseer installs applications distributed as tarballs on GitHub Releases,
+      adds them to your app grid, and keeps them up to date.
+    </p>
+  </description>
+  <developer id="io.github.davideb263">
+    <name>Davide Botter</name>
+  </developer>
+  <launchable type="desktop-id">io.github.davideb263.Tarseer.desktop</launchable>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-11-23"/>
+  </releases>
+</component>

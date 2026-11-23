@@ -16,7 +16,7 @@ found while working.
   - [x] 7. `installer.rollback`/`install_archive`: no recovery if a rename fails midway
   - [x] 8. Disk work on the GTK main loop (set_launcher/set_name/set_repo, LauncherChoices.load)
   - [x] 9. Actionable errors shown as toasts instead of `Adw.AlertDialog`
-  - [ ] 10. `%` not escaped as `%%` in desktop Exec
+  - [x] 10. `%` not escaped as `%%` in desktop Exec
 - [ ] **Real app icon** to replace the placeholder in `data/icons/`.
 - [ ] **Homepage/repo URL** in the metainfo (`url type="homepage"`) and About
       dialog, once the project is published on GitHub.

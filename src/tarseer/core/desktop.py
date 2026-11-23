@@ -157,8 +157,9 @@ def guess_icon(install_dir: Path, hint: str) -> str | None:
 
 
 def _quote_exec_arg(arg: str) -> str:
-    """Quote per the Desktop Entry spec, then escape for the key-file level."""
-    quoted = '"' + re.sub(r'(["`$\\])', r"\\\1", arg) + '"'
+    """Quote per the Desktop Entry spec, then escape for the key-file level.
+    A literal '%' must be '%%' (even inside quotes), or it reads as a field code."""
+    quoted = '"' + re.sub(r'(["`$\\])', r"\\\1", arg).replace("%", "%%") + '"'
     return quoted.replace("\\", "\\\\")
 
 

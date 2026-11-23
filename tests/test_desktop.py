@@ -76,6 +76,11 @@ class DesktopTest(unittest.TestCase):
         text = desktop.render_desktop_entry(app, Path("/x"))
         self.assertIn('Exec="/x/we\\\\$ird\\\\"name"\n', text)
 
+        app.executable = "bin/app"
+        text = desktop.render_desktop_entry(app, Path("/x/100%full/%u"))
+        self.assertIn('Exec="/x/100%%full/%%u/bin/app"\n', text)
+        self.assertIn("Path=/x/100%full/%u\n", text)  # no field codes outside Exec
+
     def test_write_and_remove_entry(self):
         app = ManagedApp(id="a", name="A", repo="o/r", asset_pattern=".*", executable="a")
         apps_dir = self.dir / "applications"

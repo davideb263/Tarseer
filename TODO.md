@@ -5,18 +5,6 @@ Ideas and known issues for after v1. Keep this file current: move items to
 found while working.
 
 ## Next up
-- [ ] **Code review of v1:** run `/code-review src/` in a fresh session and fix
-      what's worth fixing. Findings (2026-11-23):
-  - [x] 1. Goreleaser `_`-separated names (`tool_1.2.3_linux_x86_64`) not tokenized
-  - [x] 2. `x86-64` (hyphen) rejected as i686 on x86_64
-  - [x] 3. Details: changing the repo keeps the old repo's pending release on the row
-  - [x] 4. `install`: launcher/config failure after extract leaves app half-registered
-  - [x] 5. Saved asset pattern's `.+?` can match another variant (`-musl`, `-debug`)
-  - [x] 6. Rollback doesn't revalidate executable/icon; `previous_tag=None` → "not installed"
-  - [x] 7. `installer.rollback`/`install_archive`: no recovery if a rename fails midway
-  - [x] 8. Disk work on the GTK main loop (set_launcher/set_name/set_repo, LauncherChoices.load)
-  - [x] 9. Actionable errors shown as toasts instead of `Adw.AlertDialog`
-  - [x] 10. `%` not escaped as `%%` in desktop Exec
 - [ ] **Real app icon** to replace the placeholder in `data/icons/`.
 - [ ] **Homepage/repo URL** in the metainfo (`url type="homepage"`) and About
       dialog, once the project is published on GitHub.
@@ -64,3 +52,8 @@ found while working.
       (`f471394` … `ac25af6`).
 - [x] Menu entries named `<id>.desktop` with conflict detection and migration of
       `tarseer-<id>.desktop` (`a088463`).
+- [x] Code review of v1 (`/code-review src/`, 2026-11-23): asset name
+      tokenizing, version wildcard in patterns, repo change keeping the old
+      release, half-registered installs, rollback launcher paths, rename
+      recovery in install/rollback, disk work off the main loop, error alerts,
+      `%%` in Exec (`8eb7670` … `40aa0af`).

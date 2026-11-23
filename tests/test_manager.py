@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tarseer.core import desktop, github
+from tarseer.core import config, desktop, github
 from tarseer.core.assets import pattern_from_name
 from tarseer.core.installer import InstallError
 from tarseer.core.manager import AppManager, slugify
@@ -76,6 +76,37 @@ class ManagerTest(unittest.TestCase):
         self.assertFalse(entry.exists())
         self.assertEqual(list(self.paths.install_root.iterdir()), [])
         self.assertEqual(AppManager(self.paths).apps, [])
+
+    def test_new_app_rolled_back_when_config_cannot_be_saved(self):
+        manager = AppManager(self.paths)
+        app = self.new_app(manager)
+        with mock.patch.object(config, "save_apps", side_effect=PermissionError("read-only")):
+            with self.assertRaises(InstallError):
+                manager.install(app, self.release("2.4.2"))
+        self.assertEqual(manager.apps, [])
+        self.assertEqual(list(self.paths.install_root.iterdir()), [])
+        self.assertEqual(list(self.paths.applications_dir.glob("*.desktop")), [])
+        self.assertEqual(manager.unique_id("Sparrow"), "sparrow")  # a retry gets the same id
+
+    def test_menu_entry_failure_is_a_warning(self):
+        manager = AppManager(self.paths)
+        app = self.new_app(manager)
+        with mock.patch.object(desktop, "write_desktop_entry", side_effect=PermissionError("denied")):
+            warnings = manager.install(app, self.release("2.4.2"))
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("denied", warnings[0])
+        self.assertEqual(AppManager(self.paths).get("sparrow").installed_tag, "2.4.2")
+
+    def test_update_kept_with_warning_when_config_cannot_be_saved(self):
+        manager = AppManager(self.paths)
+        app = self.new_app(manager)
+        manager.install(app, self.release("2.4.2"))
+        with mock.patch.object(config, "save_apps", side_effect=PermissionError("read-only")):
+            warnings = manager.install(app, self.release("2.5.0"))
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("read-only", warnings[0])
+        self.assertEqual(manager.get("sparrow").installed_tag, "2.5.0")
+        self.assertTrue(manager.can_rollback(app))
 
     def test_no_matching_asset(self):
         manager = AppManager(self.paths)

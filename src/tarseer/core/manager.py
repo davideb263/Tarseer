@@ -74,7 +74,8 @@ class AppManager:
         """Install or update `app` to `release`, registering it if new.
 
         Returns warnings (e.g. the menu entry could not be created); the
-        install itself succeeded if this returns.
+        install itself succeeded if this returns. A new app that cannot be
+        saved to the config is removed again, so a failed install leaves nothing behind.
         """
         if app.id.endswith(_RESERVED_SUFFIXES) or "/" in app.id or app.id.startswith("."):
             raise InstallError(f"Invalid app id: {app.id!r}")
@@ -106,9 +107,24 @@ class AppManager:
                 app.icon = None
             if not app.icon:
                 app.icon = desktop.guess_icon(target, app.name)
+            try:
+                warnings = self._write_launcher(app)
+            except OSError as e:
+                warnings = [f"Could not create the app grid entry for {app.name}: {e}"]
+            is_new = app.id not in self._apps
             self._apps[app.id] = app
-            warnings = self._write_launcher(app)
-            self._save()
+            try:
+                self._save()
+            except OSError as e:
+                if not is_new:
+                    # The new version is in place; the next successful save records it.
+                    return warnings + [
+                        f"{app.name} was updated to {release.tag}, but its settings could "
+                        f"not be saved ({e}). After a restart it may show the old version."
+                    ]
+                self._apps.pop(app.id)
+                self._discard(app)
+                raise InstallError(f"Could not save settings: {e}") from e
         return warnings
 
     def rollback(self, app: ManagedApp) -> list[str]:
@@ -160,6 +176,17 @@ class AppManager:
             self._save()
 
     # ── Internals ────────────────────────────────────────────────────────────
+    def _discard(self, app: ManagedApp) -> None:
+        """Best-effort removal of a new app's files and menu entry after a failed install."""
+        for step in (
+            lambda: desktop.remove_desktop_entry(self.paths.applications_dir, app),
+            lambda: installer.remove(self.install_dir(app)),
+        ):
+            try:
+                step()
+            except OSError:
+                pass
+
     def _write_launcher(self, app: ManagedApp, strict: bool = False) -> list[str]:
         """Create/refresh the menu entry. Name conflicts raise if `strict`,
         otherwise they are returned as warnings."""

@@ -74,7 +74,7 @@ class DetailsDialog(Adw.Dialog):
         self.name_row.set_text(app.name)
         self.repo_row.set_text(app.repo)
         self.pattern_row.set_subtitle(app.asset_pattern)
-        self.installed_row.set_subtitle(app.installed_tag or _("Unknown"))
+        self.installed_row.set_subtitle(app.installed_tag or _("Unknown version"))
         can_rollback = self.manager.can_rollback(app)
         self.previous_row.set_visible(can_rollback)
         self.previous_row.set_subtitle(app.previous_tag or _("Unknown version"))

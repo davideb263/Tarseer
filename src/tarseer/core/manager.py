@@ -100,13 +100,7 @@ class AppManager:
         with self._lock:
             app.previous_tag = app.installed_tag if made_backup else None
             app.installed_tag = release.tag
-            # Re-guess launcher paths if they are unset or vanished in this version.
-            if not app.executable or not (target / app.executable).is_file():
-                app.executable = desktop.guess_executable(target, app.name)
-            if app.icon and not (target / app.icon).is_file():
-                app.icon = None
-            if not app.icon:
-                app.icon = desktop.guess_icon(target, app.name)
+            self._revalidate_launcher_paths(app)
             try:
                 warnings = self._write_launcher(app)
             except OSError as e:
@@ -128,9 +122,12 @@ class AppManager:
         return warnings
 
     def rollback(self, app: ManagedApp) -> list[str]:
+        """Swap the current and backed-up versions. If the previous tag was
+        never recorded, `installed_tag` becomes None (version unknown)."""
         installer.rollback(self.install_dir(app))
         with self._lock:
             app.installed_tag, app.previous_tag = app.previous_tag, app.installed_tag
+            self._revalidate_launcher_paths(app)
             warnings = self._write_launcher(app)
             self._save()
         return warnings
@@ -176,6 +173,16 @@ class AppManager:
             self._save()
 
     # ── Internals ────────────────────────────────────────────────────────────
+    def _revalidate_launcher_paths(self, app: ManagedApp) -> None:
+        """Re-guess launcher paths that are unset or missing in the version now installed."""
+        target = self.install_dir(app)
+        if not app.executable or not (target / app.executable).is_file():
+            app.executable = desktop.guess_executable(target, app.name)
+        if app.icon and not (target / app.icon).is_file():
+            app.icon = None
+        if not app.icon:
+            app.icon = desktop.guess_icon(target, app.name)
+
     def _discard(self, app: ManagedApp) -> None:
         """Best-effort removal of a new app's files and menu entry after a failed install."""
         for step in (

@@ -40,7 +40,7 @@ class AppRow(Adw.ActionRow):
     # ── Display ──────────────────────────────────────────────────────────────
     def refresh(self) -> None:
         self.set_title(self.app.name)
-        installed = self.app.installed_tag or _("not installed")
+        installed = self.app.installed_tag or _("Unknown version")
         if self.release and self.manager.update_available(self.app, self.release):
             self.set_subtitle(f"{installed} → {self.release.tag}")
             self.state_stack.set_visible_child_name("update")

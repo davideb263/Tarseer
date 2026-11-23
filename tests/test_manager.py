@@ -108,6 +108,32 @@ class ManagerTest(unittest.TestCase):
         self.assertEqual(manager.get("sparrow").installed_tag, "2.5.0")
         self.assertTrue(manager.can_rollback(app))
 
+    def test_rollback_revalidates_launcher_paths(self):
+        manager = AppManager(self.paths)
+        app = self.new_app(manager)
+        manager.install(app, self.release("2.4.2"))
+        # 2.5.0 renames the binary and drops the old one; the user picks the new name.
+        name = "sparrowwallet-2.5.0-x86_64.tar.gz"
+        self.archives[name] = make_tarball(
+            self.tmp / name, {"Sparrow/bin/SparrowApp": ELF}, executables=("Sparrow/bin/SparrowApp",))
+        manager.install(app, Release(tag="2.5.0", assets=[Asset(name=name, url=name)]))
+        manager.set_launcher(app, "bin/SparrowApp", None)
+
+        manager.rollback(app)
+        self.assertEqual((app.executable, app.icon), ("bin/Sparrow", "lib/Sparrow.png"))
+        entry = (self.paths.applications_dir / "sparrow.desktop").read_text()
+        self.assertIn(str(self.paths.install_root / "sparrow" / "bin" / "Sparrow"), entry)
+
+    def test_rollback_to_unrecorded_version(self):
+        manager = AppManager(self.paths)
+        app = self.new_app(manager)
+        manager.install(app, self.release("2.4.2"))
+        manager.install(app, self.release("2.5.0"))
+        app.previous_tag = None  # e.g. backup made before the tag was recorded
+        manager.rollback(app)
+        self.assertEqual((app.installed_tag, app.previous_tag), (None, "2.5.0"))
+        self.assertTrue(manager.update_available(app, self.release("2.5.0")))
+
     def test_no_matching_asset(self):
         manager = AppManager(self.paths)
         rel = Release(tag="3.0", assets=[Asset(name="sparrow-3.0.dmg", url="x")])

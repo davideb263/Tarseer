@@ -43,6 +43,9 @@ Python + PyGObject, GTK4 + libadwaita 1.10, Blueprint UI files, Meson, Flatpak
   `X-Tarseer-App=<id>`; a foreign file with the same name is a conflict reported
   to the user, never overwritten. Legacy `tarseer-<id>.desktop` files are
   migrated at startup.
+- `TODO.md` is the backlog. Read it when planning work; when you finish an item,
+  move it to **Done** with the commit hash; add ideas/issues you discover. Commit
+  it together with the related change.
 - Messages the user must act on go in an `Adw.AlertDialog`, not a toast
   (toasts truncate to one line).
 - The installed version is the release tag Tarseer recorded at install time;

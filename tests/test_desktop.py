@@ -80,7 +80,10 @@ class DesktopTest(unittest.TestCase):
         app = ManagedApp(id="a", name="A", repo="o/r", asset_pattern=".*", executable="a")
         apps_dir = self.dir / "applications"
         path = desktop.write_desktop_entry(apps_dir, app, self.dir / "a")
-        self.assertEqual(path.name, "tarseer-a.desktop")
+        self.assertEqual(path.name, "a.desktop")
+        self.assertEqual(app.desktop_file, "a.desktop")
+        self.assertTrue(desktop.is_owned(path, "a"))
+        self.assertFalse(desktop.is_owned(path, "b"))
         self.assertIn("Icon=application-x-executable", path.read_text())
         desktop.remove_desktop_entry(apps_dir, app)
         self.assertFalse(path.exists())

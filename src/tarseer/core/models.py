@@ -46,6 +46,7 @@ class ManagedApp:
     previous_tag: str | None = None  # tag of the .bak copy, used by rollback
     executable: str | None = None    # path relative to the install dir
     icon: str | None = None          # path relative to the install dir
+    desktop_file: str | None = None  # name of the .desktop file Tarseer wrote (and owns)
 
     def to_dict(self) -> dict:
         return asdict(self)

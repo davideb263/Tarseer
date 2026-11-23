@@ -9,6 +9,7 @@ from ..core import desktop, github
 from ..core.assets import candidate_assets, is_tarball, pattern_from_name
 from ..core.manager import AppManager
 from ..core.models import Asset, ManagedApp, Release
+from .alerts import show_launcher_warnings
 from .tasks import ThrottledProgress, run_task
 
 
@@ -165,11 +166,12 @@ class AddDialog(Adw.Dialog):
             else:
                 self.progress_bar.pulse()
 
-        def on_success(installed: ManagedApp):
+        def on_success(warnings: list[str]):
             self.set_can_close(True)
-            self.app = installed
-            self.emit("app-changed", installed, release)
+            self.app = app
+            self.emit("app-changed", app, release)
             self._show_review()
+            show_launcher_warnings(self, warnings)
 
         def on_error(error: Exception):
             self.set_can_close(True)

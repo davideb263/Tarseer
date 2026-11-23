@@ -82,6 +82,9 @@ class GitHubTest(unittest.TestCase):
             (http_error(500), github.GitHubError),
             (urllib.error.URLError("no route"), github.GitHubError),
         ]
+        for exc, _expected in cases:
+            if isinstance(exc, urllib.error.HTTPError):
+                self.addCleanup(exc.close)
         for exc, expected in cases:
             with self.subTest(expected.__name__), mock.patch.object(github, "_urlopen", side_effect=exc):
                 with self.assertRaises(expected):

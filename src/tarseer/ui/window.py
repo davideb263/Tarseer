@@ -6,6 +6,7 @@ from ..core.config import ConfigError
 from ..core.manager import AppManager
 from ..core.models import ManagedApp, Release
 from .add_dialog import AddDialog
+from .alerts import show_launcher_warnings
 from .app_row import AppRow
 
 APP_ID = "io.github.davideb263.Tarseer"
@@ -56,6 +57,9 @@ class TarseerWindow(Adw.ApplicationWindow):
             self.add_app_action.set_enabled(False)
             return
         self.populate()
+        if self.manager.startup_warnings:
+            # Wait until the window is on screen so the alert has a parent to attach to.
+            self.connect("map", lambda *_: show_launcher_warnings(self, self.manager.startup_warnings))
 
     def populate(self) -> None:
         """Sync the list with the manager, keeping existing rows (and their check state)."""
@@ -67,6 +71,7 @@ class TarseerWindow(Adw.ApplicationWindow):
             if row is None:
                 row = AppRow(self.manager, app)
                 row.connect("notify-user", lambda _row, msg: self.toast(msg))
+                row.connect("launcher-warnings", lambda _row, w: show_launcher_warnings(self, w))
             self.rows_by_id[app.id] = row
             self.list_box.append(row)
         self.rows = list(self.rows_by_id.values())

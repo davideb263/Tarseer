@@ -166,8 +166,36 @@ def _escape_value(value: str) -> str:
     return value.replace("\\", "\\\\").replace("\n", " ").replace("\r", " ").replace("\t", " ")
 
 
-def desktop_file_path(applications_dir: Path, app: ManagedApp) -> Path:
-    return applications_dir / f"tarseer-{app.id}.desktop"
+LEGACY_PREFIX = "tarseer-"  # names used before v0.1 switched to plain "<id>.desktop"
+
+
+class DesktopConflictError(Exception):
+    """The preferred .desktop name is taken by a file Tarseer did not create."""
+
+    def __init__(self, path: Path, app_name: str):
+        self.path = path
+        shown = str(path).replace(str(Path.home()), "~", 1)
+        super().__init__(
+            f"{shown} already exists and was not created by Tarseer. "
+            f"Remove or rename it so Tarseer can add {app_name} to the app grid."
+        )
+
+
+def preferred_desktop_path(applications_dir: Path, app: ManagedApp) -> Path:
+    return applications_dir / f"{app.id}.desktop"
+
+
+def legacy_desktop_path(applications_dir: Path, app: ManagedApp) -> Path:
+    return applications_dir / f"{LEGACY_PREFIX}{app.id}.desktop"
+
+
+def is_owned(path: Path, app_id: str) -> bool:
+    """True if `path` is a menu entry Tarseer wrote for `app_id`."""
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    return f"\nX-Tarseer-App={app_id}\n" in f"\n{text}"
 
 
 def render_desktop_entry(app: ManagedApp, install_dir: Path) -> str:
@@ -188,13 +216,46 @@ def render_desktop_entry(app: ManagedApp, install_dir: Path) -> str:
 
 
 def write_desktop_entry(applications_dir: Path, app: ManagedApp, install_dir: Path) -> Path:
+    """Write the menu entry as "<id>.desktop", never overwriting a foreign file.
+
+    If that name is taken by someone else, keep updating the file Tarseer
+    already owns (e.g. a legacy "tarseer-<id>.desktop"); if there is none,
+    raise DesktopConflictError. Updates `app.desktop_file` and removes the
+    previously owned file when the entry moves to the preferred name.
+    """
     applications_dir.mkdir(parents=True, exist_ok=True)
-    path = desktop_file_path(applications_dir, app)
-    tmp = path.with_name(f".{path.name}.tmp")
+    preferred = preferred_desktop_path(applications_dir, app)
+    owned = [p for p in (
+        applications_dir / app.desktop_file if app.desktop_file else None,
+        legacy_desktop_path(applications_dir, app),
+    ) if p is not None and p != preferred and is_owned(p, app.id)]
+
+    if not preferred.exists() or is_owned(preferred, app.id):
+        target = preferred
+    elif owned:
+        target = owned[0]
+    else:
+        raise DesktopConflictError(preferred, app.name)
+
+    tmp = target.with_name(f".{target.name}.tmp")
     tmp.write_text(render_desktop_entry(app, install_dir), encoding="utf-8")
-    os.replace(tmp, path)
-    return path
+    os.replace(tmp, target)
+    for old in owned:
+        if old != target:
+            old.unlink(missing_ok=True)
+    app.desktop_file = target.name
+    return target
 
 
 def remove_desktop_entry(applications_dir: Path, app: ManagedApp) -> None:
-    desktop_file_path(applications_dir, app).unlink(missing_ok=True)
+    """Delete every menu entry Tarseer wrote for `app`; leave foreign files alone."""
+    candidates = {
+        preferred_desktop_path(applications_dir, app),
+        legacy_desktop_path(applications_dir, app),
+    }
+    if app.desktop_file:
+        candidates.add(applications_dir / app.desktop_file)
+    for path in candidates:
+        if is_owned(path, app.id):
+            path.unlink(missing_ok=True)
+    app.desktop_file = None

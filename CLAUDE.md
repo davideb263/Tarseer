@@ -37,7 +37,13 @@ Python + PyGObject, GTK4 + libadwaita 1.10, Blueprint UI files, Meson, Flatpak
 - Blocking work (network, disk) runs in a worker thread; results go back to the
   UI with `GLib.idle_add`. Never block the GTK main loop.
 - Managed apps install to `~/.local/opt/<id>/`, backup at `~/.local/opt/<id>.bak/`.
-  Menu entries go to `~/.local/share/applications/tarseer-<id>.desktop`.
+  Menu entries go to `~/.local/share/applications/<id>.desktop` (user's choice:
+  clean names). Tarseer only ever modifies/deletes .desktop files containing
+  `X-Tarseer-App=<id>`; a foreign file with the same name is a conflict reported
+  to the user, never overwritten. Legacy `tarseer-<id>.desktop` files are
+  migrated at startup.
+- Messages the user must act on go in an `Adw.AlertDialog`, not a toast
+  (toasts truncate to one line).
 - The installed version is the release tag Tarseer recorded at install time;
   never run managed apps' binaries to detect versions (doesn't work in the sandbox).
 - Any new host path the app touches needs a matching `--filesystem` in the manifest.

@@ -11,6 +11,7 @@ from typing import Callable
 
 from . import config, desktop, github, installer
 from .assets import match_asset
+from .desktop import DesktopConflictError
 from .installer import InstallError
 from .models import ManagedApp, Paths, Release
 
@@ -29,6 +30,8 @@ class AppManager:
         self._apps: dict[str, ManagedApp] = {
             a.id: a for a in config.load_apps(self.paths.config_file)
         }
+        # Messages for the UI about menu entries that could not be set up.
+        self.startup_warnings: list[str] = self._sync_launchers()
 
     # ── Queries ──────────────────────────────────────────────────────────────
     @property
@@ -67,8 +70,12 @@ class AppManager:
         release: Release,
         progress: Callable[[int, int], None] | None = None,
         cancel: threading.Event | None = None,
-    ) -> ManagedApp:
-        """Install or update `app` to `release`, registering it if new."""
+    ) -> list[str]:
+        """Install or update `app` to `release`, registering it if new.
+
+        Returns warnings (e.g. the menu entry could not be created); the
+        install itself succeeded if this returns.
+        """
         if app.id.endswith(_RESERVED_SUFFIXES) or "/" in app.id or app.id.startswith("."):
             raise InstallError(f"Invalid app id: {app.id!r}")
         asset = match_asset(release.assets, app.asset_pattern)
@@ -100,16 +107,17 @@ class AppManager:
             if not app.icon:
                 app.icon = desktop.guess_icon(target, app.name)
             self._apps[app.id] = app
-            self._write_launcher(app)
+            warnings = self._write_launcher(app)
             self._save()
-        return app
+        return warnings
 
-    def rollback(self, app: ManagedApp) -> None:
+    def rollback(self, app: ManagedApp) -> list[str]:
         installer.rollback(self.install_dir(app))
         with self._lock:
             app.installed_tag, app.previous_tag = app.previous_tag, app.installed_tag
-            self._write_launcher(app)
+            warnings = self._write_launcher(app)
             self._save()
+        return warnings
 
     def remove(self, app: ManagedApp) -> None:
         installer.remove(self.install_dir(app))
@@ -128,15 +136,47 @@ class AppManager:
                 raise InstallError(f"{rel} is not a file inside {target}")
         with self._lock:
             app.executable, app.icon = executable, icon
-            self._write_launcher(app)
-            self._save()
+            try:
+                self._write_launcher(app, strict=True)
+            finally:
+                self._save()
 
     # ── Internals ────────────────────────────────────────────────────────────
-    def _write_launcher(self, app: ManagedApp) -> None:
-        if app.executable:
-            desktop.write_desktop_entry(self.paths.applications_dir, app, self.install_dir(app))
-        else:
+    def _write_launcher(self, app: ManagedApp, strict: bool = False) -> list[str]:
+        """Create/refresh the menu entry. Name conflicts raise if `strict`,
+        otherwise they are returned as warnings."""
+        if not app.executable:
             desktop.remove_desktop_entry(self.paths.applications_dir, app)
+            return []
+        try:
+            desktop.write_desktop_entry(self.paths.applications_dir, app, self.install_dir(app))
+        except DesktopConflictError as e:
+            if strict:
+                raise
+            return [str(e)]
+        return []
+
+    def _sync_launchers(self) -> list[str]:
+        """Bring menu entries to the preferred "<id>.desktop" name where possible
+        (migrates legacy "tarseer-<id>.desktop" files, recreates missing ones)."""
+        warnings, changed = [], False
+        for app in self._apps.values():
+            if not app.executable or not self.install_dir(app).is_dir():
+                continue
+            preferred = desktop.preferred_desktop_path(self.paths.applications_dir, app)
+            if app.desktop_file == preferred.name and preferred.exists():
+                continue
+            try:
+                warnings += self._write_launcher(app)
+            except OSError as e:
+                warnings.append(f"Could not update the app grid entry for {app.name}: {e}")
+            changed = True
+        if changed:
+            try:
+                self._save()
+            except OSError as e:
+                warnings.append(f"Could not save settings: {e}")
+        return warnings
 
     def _save(self) -> None:
         config.save_apps(self.paths.config_file, list(self._apps.values()))

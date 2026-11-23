@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tarseer.core import github
+from tarseer.core import desktop, github
 from tarseer.core.assets import pattern_from_name
 from tarseer.core.installer import InstallError
 from tarseer.core.manager import AppManager, slugify
@@ -51,10 +51,11 @@ class ManagerTest(unittest.TestCase):
 
     def test_install_update_rollback_remove(self):
         manager = AppManager(self.paths)
-        app = manager.install(self.new_app(manager), self.release("2.4.2"))
+        app = self.new_app(manager)
+        self.assertEqual(manager.install(app, self.release("2.4.2")), [])
         self.assertEqual((app.id, app.installed_tag, app.previous_tag), ("sparrow", "2.4.2", None))
         self.assertEqual((app.executable, app.icon), ("bin/Sparrow", "lib/Sparrow.png"))
-        entry = self.paths.applications_dir / "tarseer-sparrow.desktop"
+        entry = self.paths.applications_dir / "sparrow.desktop"
         self.assertIn(str(self.paths.install_root / "sparrow" / "bin" / "Sparrow"), entry.read_text())
         self.assertFalse(manager.can_rollback(app))
 
@@ -92,12 +93,88 @@ class ManagerTest(unittest.TestCase):
 
     def test_set_launcher_rejects_paths_outside_install(self):
         manager = AppManager(self.paths)
-        app = manager.install(self.new_app(manager), self.release("2.4.2"))
+        app = self.new_app(manager)
+        manager.install(app, self.release("2.4.2"))
         with self.assertRaises(InstallError):
             manager.set_launcher(app, "../../../etc/passwd", None)
         manager.set_launcher(app, "bin/Sparrow", None)
         self.assertIn("Icon=application-x-executable",
-                      (self.paths.applications_dir / "tarseer-sparrow.desktop").read_text())
+                      (self.paths.applications_dir / "sparrow.desktop").read_text())
+
+    def foreign_entry(self, name):
+        self.paths.applications_dir.mkdir(parents=True, exist_ok=True)
+        path = self.paths.applications_dir / name
+        path.write_text("[Desktop Entry]\nName=Hand-written\nExec=/var/opt/Sparrow/bin/Sparrow\n")
+        return path
+
+    def test_conflicting_entry_is_never_touched(self):
+        foreign = self.foreign_entry("sparrow.desktop")
+        before = foreign.read_text()
+        manager = AppManager(self.paths)
+        app = self.new_app(manager)
+        warnings = manager.install(app, self.release("2.4.2"))
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("not created by Tarseer", warnings[0])
+        self.assertEqual(app.installed_tag, "2.4.2")  # the install itself succeeded
+        self.assertIsNone(app.desktop_file)
+        self.assertEqual(foreign.read_text(), before)
+
+        # Explicit launcher change reports the conflict as an error.
+        with self.assertRaises(desktop.DesktopConflictError):
+            manager.set_launcher(app, "bin/Sparrow", None)
+
+        # Next startup still warns; after the user removes the file, the entry appears.
+        self.assertEqual(len(AppManager(self.paths).startup_warnings), 1)
+        foreign.unlink()
+        manager = AppManager(self.paths)
+        self.assertEqual(manager.startup_warnings, [])
+        self.assertTrue((self.paths.applications_dir / "sparrow.desktop").is_file())
+        self.assertEqual(manager.get("sparrow").desktop_file, "sparrow.desktop")
+
+        manager.remove(manager.get("sparrow"))
+        self.assertFalse((self.paths.applications_dir / "sparrow.desktop").exists())
+
+    def test_remove_leaves_foreign_entry(self):
+        manager = AppManager(self.paths)
+        app = self.new_app(manager)
+        manager.install(app, self.release("2.4.2"))
+        entry = self.paths.applications_dir / "sparrow.desktop"
+        entry.unlink()
+        foreign = self.foreign_entry("sparrow.desktop")
+        manager.remove(app)
+        self.assertTrue(foreign.exists())
+
+    def test_legacy_entry_migrated_on_startup(self):
+        manager = AppManager(self.paths)
+        app = self.new_app(manager)
+        manager.install(app, self.release("2.4.2"))
+        # Simulate a v0.1-dev install: prefixed file, no desktop_file in config.
+        apps_dir = self.paths.applications_dir
+        (apps_dir / "sparrow.desktop").rename(apps_dir / "tarseer-sparrow.desktop")
+        app.desktop_file = None
+        manager._save()
+
+        migrated = AppManager(self.paths)
+        self.assertEqual(migrated.startup_warnings, [])
+        self.assertEqual(sorted(p.name for p in apps_dir.iterdir()), ["sparrow.desktop"])
+        self.assertEqual(AppManager(self.paths).get("sparrow").desktop_file, "sparrow.desktop")
+
+    def test_legacy_entry_kept_when_clean_name_is_taken(self):
+        manager = AppManager(self.paths)
+        app = self.new_app(manager)
+        manager.install(app, self.release("2.4.2"))
+        apps_dir = self.paths.applications_dir
+        (apps_dir / "sparrow.desktop").rename(apps_dir / "tarseer-sparrow.desktop")
+        app.desktop_file = "tarseer-sparrow.desktop"
+        manager._save()
+        foreign = self.foreign_entry("sparrow.desktop")
+
+        manager = AppManager(self.paths)
+        app = manager.get("sparrow")
+        manager.install(app, self.release("2.5.0"))  # keeps refreshing the file it owns
+        self.assertEqual(app.installed_tag, "2.5.0")
+        self.assertIn("X-Tarseer-App=sparrow", (apps_dir / "tarseer-sparrow.desktop").read_text())
+        self.assertIn("Hand-written", foreign.read_text())
 
 
 if __name__ == "__main__":

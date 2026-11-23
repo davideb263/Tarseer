@@ -19,6 +19,8 @@ class AppRow(Adw.ActionRow):
     __gsignals__ = {
         # Human-readable message for the window to show as a toast.
         "notify-user": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
+        # list[str] of app grid entry problems the user has to fix.
+        "launcher-warnings": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
     }
 
     icon: Gtk.Image = Gtk.Template.Child()
@@ -125,8 +127,10 @@ class AppRow(Adw.ActionRow):
             if done:
                 done(self)
 
-        def on_success(_app):
+        def on_success(warnings: list[str]):
             self.emit("notify-user", _("{app} updated to {tag}").format(app=self.app.name, tag=release.tag))
+            if warnings:
+                self.emit("launcher-warnings", warnings)
             finish()
 
         def on_error(error: Exception):

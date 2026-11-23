@@ -7,6 +7,7 @@ from ..core.manager import AppManager
 from ..core.models import ManagedApp, Release
 from .add_dialog import AddDialog
 from .alerts import show_launcher_warnings
+from .details_dialog import DetailsDialog
 from .app_row import AppRow
 
 APP_ID = "io.github.davideb263.Tarseer"
@@ -83,6 +84,19 @@ class TarseerWindow(Adw.ApplicationWindow):
         dialog = AddDialog(self.manager)
         dialog.connect("app-changed", self._on_app_changed)
         dialog.present(self)
+
+    # ── Details ──────────────────────────────────────────────────────────────
+    @Gtk.Template.Callback()
+    def on_row_activated(self, _list_box, row: AppRow) -> None:
+        self.open_details(row)
+
+    def open_details(self, row: AppRow) -> DetailsDialog:
+        dialog = DetailsDialog(self.manager, row)
+        dialog.connect("app-changed", self._on_app_changed)
+        dialog.connect("app-removed", lambda *_: self.populate())
+        dialog.connect("notify-user", lambda _d, msg: self.toast(msg))
+        dialog.present(self)
+        return dialog
 
     def _on_app_changed(self, _dialog, app: ManagedApp, release: Release | None) -> None:
         is_new = app.id not in self.rows_by_id

@@ -71,6 +71,7 @@ template $TarseerWindow: Adw.ApplicationWindow {
               child: ListBox list_box {
                 selection-mode: none;
                 valign: start;
+                row-activated => $on_row_activated();
 
                 styles [
                   "boxed-list",

@@ -3,6 +3,8 @@ using Adw 1;
 
 template $TarseerAppRow: Adw.ActionRow {
   use-markup: false;
+  activatable: true;
+  tooltip-text: _("Show details");
 
   [prefix]
   Image icon {
@@ -71,5 +73,10 @@ template $TarseerAppRow: Adw.ActionRow {
         ]
       };
     }
+  }
+
+  [suffix]
+  Image {
+    icon-name: "go-next-symbolic";
   }
 }

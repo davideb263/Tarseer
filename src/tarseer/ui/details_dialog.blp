@@ -1,0 +1,159 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $TarseerDetailsDialog: Adw.Dialog {
+  content-width: 540;
+  content-height: 720;
+
+  child: Adw.ToastOverlay toast_overlay {
+    child: Adw.ToolbarView {
+      [top]
+      Adw.HeaderBar {}
+
+      [top]
+      Adw.Banner busy_banner {
+        title: _("An update is in progress. Changes are unavailable until it finishes.");
+      }
+
+      content: Adw.PreferencesPage {
+        Adw.PreferencesGroup {
+          Box {
+            orientation: vertical;
+            spacing: 6;
+
+            Image icon {
+              pixel-size: 96;
+              margin-bottom: 6;
+            }
+
+            Label title_label {
+              wrap: true;
+              justify: center;
+
+              styles [
+                "title-1",
+              ]
+            }
+
+            Label version_label {
+              styles [
+                "dim-label",
+              ]
+            }
+          }
+        }
+
+        Adw.PreferencesGroup version_group {
+          title: _("Version");
+
+          Adw.ActionRow installed_row {
+            title: _("Installed");
+            use-markup: false;
+
+            styles [
+              "property",
+            ]
+          }
+
+          Adw.ActionRow previous_row {
+            title: _("Previous");
+            use-markup: false;
+
+            styles [
+              "property",
+            ]
+
+            [suffix]
+            Button rollback_button {
+              label: _("_Restore");
+              use-underline: true;
+              valign: center;
+              tooltip-text: _("Switch back to the previous version. You can switch again afterwards.");
+              clicked => $on_rollback();
+            }
+          }
+        }
+
+        Adw.PreferencesGroup launcher_group {
+          title: _("App Grid Entry");
+
+          Adw.ComboRow exec_row {
+            title: _("Program");
+            enable-search: true;
+          }
+
+          Adw.ComboRow icon_row {
+            title: _("Icon");
+            enable-search: true;
+          }
+        }
+
+        Adw.PreferencesGroup general_group {
+          title: _("General");
+
+          Adw.EntryRow name_row {
+            title: _("Name");
+            show-apply-button: true;
+            apply => $on_name_apply();
+          }
+
+          Adw.EntryRow repo_row {
+            title: _("GitHub Repository");
+            show-apply-button: true;
+            apply => $on_repo_apply();
+          }
+
+          Adw.ActionRow pattern_row {
+            title: _("Release File Pattern");
+            subtitle-selectable: true;
+            use-markup: false;
+
+            styles [
+              "property",
+            ]
+          }
+        }
+
+        Adw.PreferencesGroup {
+          title: _("Files");
+
+          Adw.ActionRow folder_row {
+            title: _("Install Folder");
+            subtitle-selectable: true;
+            use-markup: false;
+
+            styles [
+              "property",
+            ]
+
+            [suffix]
+            Button {
+              icon-name: "folder-open-symbolic";
+              tooltip-text: _("Open Folder");
+              valign: center;
+              clicked => $on_open_folder();
+
+              styles [
+                "flat",
+              ]
+            }
+          }
+        }
+
+        Adw.PreferencesGroup {
+          Button remove_button {
+            label: _("_Remove App");
+            use-underline: true;
+            halign: center;
+            clicked => $on_remove();
+
+            styles [
+              "pill",
+              "destructive-action",
+            ]
+          }
+        }
+      };
+    };
+  };
+}

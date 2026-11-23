@@ -3,13 +3,14 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from gi.repository import Adw, Gio, GLib, GObject, Gtk
+from gi.repository import Adw, GLib, GObject, Gtk
 
-from ..core import desktop, github
+from ..core import github
 from ..core.assets import candidate_assets, is_tarball, pattern_from_name
 from ..core.manager import AppManager
 from ..core.models import Asset, ManagedApp, Release
 from .alerts import show_launcher_warnings
+from .launcher_choices import LauncherChoices
 from .tasks import ThrottledProgress, run_task
 
 
@@ -53,8 +54,7 @@ class AddDialog(Adw.Dialog):
         self.release: Release | None = None
         self.app: ManagedApp | None = None
         self._asset_rows: list[tuple[Adw.ActionRow, Gtk.CheckButton, Asset]] = []
-        self._executables: list[str] = []
-        self._icons: list[str | None] = []
+        self.launcher = LauncherChoices(self.exec_row, self.icon_row)
 
     def toast(self, message: str) -> None:
         self.toast_overlay.add_toast(Adw.Toast(title=message, use_markup=False, timeout=6))
@@ -188,54 +188,25 @@ class AddDialog(Adw.Dialog):
         self.review_title.set_label(app.name)
         self.review_subtitle.set_label(_("{tag} installed in {path}").format(
             tag=app.installed_tag, path=str(install_dir).replace(str(Path.home()), "~", 1)))
-
-        self._executables = desktop.rank_executables(install_dir, app.name)
-        if app.executable and app.executable not in self._executables:
-            self._executables.insert(0, app.executable)
-        if self._executables:
-            self.exec_row.set_model(Gtk.StringList.new(self._executables))
-            self.exec_row.set_selected(self._executables.index(app.executable) if app.executable else 0)
-            self.exec_row.set_sensitive(True)
-            self.exec_row.set_subtitle("")
-        else:
-            self.exec_row.set_model(Gtk.StringList.new([]))
-            self.exec_row.set_sensitive(False)
-            self.exec_row.set_subtitle(_("No programs found, so no app grid entry was created"))
-
-        icons = desktop.rank_icons(install_dir, app.name)
-        self._icons = [None, *icons]
-        self.icon_row.set_model(Gtk.StringList.new([_("Generic icon"), *icons]))
-        self.icon_row.set_selected(self._icons.index(app.icon) if app.icon in self._icons else 0)
-        self._update_preview()
-
+        self.launcher.load(install_dir, app)
+        self.launcher.show_icon(self.review_icon)
         # Replace the stack so "back" can't return to the progress page.
         self.nav.replace_with_tags(["review"])
 
     @Gtk.Template.Callback()
     def on_icon_selected(self, *_args) -> None:
-        self._update_preview()
-
-    def _update_preview(self) -> None:
-        if not self.app:
-            return
-        index = self.icon_row.get_selected()
-        icon = self._icons[index] if 0 <= index < len(self._icons) else None
-        if icon:
-            path = self.manager.install_dir(self.app) / icon
-            self.review_icon.set_from_gicon(Gio.FileIcon.new(Gio.File.new_for_path(str(path))))
-        else:
-            self.review_icon.set_from_icon_name("application-x-executable")
+        if self.app:
+            self.launcher.show_icon(self.review_icon)
 
     @Gtk.Template.Callback()
     def on_done(self, *_args) -> None:
         app = self.app
-        executable = self._executables[self.exec_row.get_selected()] if self._executables else None
-        icon = self._icons[self.icon_row.get_selected()]
+        executable, icon = self.launcher.selection()
         if (executable, icon) != (app.executable, app.icon):
             try:
                 self.manager.set_launcher(app, executable, icon)
             except Exception as e:  # noqa: BLE001
-                self.toast(str(e))
+                show_launcher_warnings(self, [str(e)])
                 return
             self.emit("app-changed", app, None)
         self.close()

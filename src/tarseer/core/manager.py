@@ -141,6 +141,24 @@ class AppManager:
             finally:
                 self._save()
 
+    def set_name(self, app: ManagedApp, name: str) -> None:
+        name = name.strip()
+        if not name:
+            raise ValueError("The name cannot be empty")
+        with self._lock:
+            app.name = name
+            self._write_launcher(app)  # conflicts were already reported at install time
+            self._save()
+
+    def set_repo(self, app: ManagedApp, repo: str) -> None:
+        """Point the app at another repository (e.g. the project was renamed).
+        Callers should check the repository exists first (see fetch_latest)."""
+        repo = github.parse_repo(repo)
+        with self._lock:
+            app.repo = repo
+            self._write_launcher(app)
+            self._save()
+
     # ── Internals ────────────────────────────────────────────────────────────
     def _write_launcher(self, app: ManagedApp, strict: bool = False) -> list[str]:
         """Create/refresh the menu entry. Name conflicts raise if `strict`,

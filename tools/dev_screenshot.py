@@ -34,6 +34,12 @@ parser.add_argument("--add", metavar="REPO", help="walk through the Add App dial
 parser.add_argument("--add-shots", metavar="PREFIX",
                     help="with --add: save PREFIX-repo.png, -asset.png, -progress.png, -review.png")
 parser.add_argument("--add-name", help="with --add: override the suggested name")
+parser.add_argument("--details", metavar="APP_ID", help="finally open the details dialog of APP_ID")
+parser.add_argument("--details-action", choices=["rollback", "remove-confirm", "remove"],
+                    help="with --details: press a button (remove-confirm only shows the alert)")
+parser.add_argument("--details-shot", metavar="PATH", help="with --details: screenshot before the action")
+parser.add_argument("--details-bottom-shot", metavar="PATH",
+                    help="with --details: also screenshot scrolled to the bottom")
 parser.add_argument("--size", default="720x560")
 parser.add_argument("--timeout", type=float, default=300)
 args = parser.parse_args()
@@ -103,6 +109,43 @@ def drive_add_dialog(win, then):
     wait_for(lambda: tag() == "repo", step_repo)
 
 
+def drive_details(win, then):
+    row = win.rows_by_id[args.details]
+    dialog = win.open_details(row)
+
+    def scroll_to_bottom():
+        stack = [dialog]
+        while stack:
+            widget = stack.pop()
+            if isinstance(widget, Gtk.ScrolledWindow):
+                adj = widget.get_vadjustment()
+                adj.set_value(adj.get_upper())
+            child = widget.get_first_child()
+            while child:
+                stack.append(child)
+                child = child.get_next_sibling()
+
+    def act():
+        if args.details_shot:
+            screenshot(win, args.details_shot)
+        if args.details_bottom_shot:
+            scroll_to_bottom()
+            GLib.timeout_add(400, lambda: (screenshot(win, args.details_bottom_shot), act2())[-1] and False)
+        else:
+            act2()
+
+    def act2():
+        if args.details_action == "rollback":
+            dialog.on_rollback()
+        elif args.details_action == "remove-confirm":
+            dialog.on_remove()
+        elif args.details_action == "remove":
+            dialog._on_remove_response(None, "remove")
+        GLib.timeout_add(1000, lambda: wait_idle(win, then) and False)
+
+    GLib.timeout_add(1200, lambda: act() and False)
+
+
 def wait_idle(win, then):
     def poll():
         if time.monotonic() - started > args.timeout:
@@ -121,8 +164,14 @@ def on_activate(application):
     w, h = (int(x) for x in args.size.split("x"))
     win.set_default_size(w, h)
 
-    def finish():
+    def final_shot():
         GLib.timeout_add(700, lambda: (screenshot(win, args.out), application.quit())[-1] and False)
+
+    def finish():
+        if args.details:
+            drive_details(win, final_shot)
+        else:
+            final_shot()
 
     def do_update():
         if args.update:

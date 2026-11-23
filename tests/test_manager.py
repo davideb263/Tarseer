@@ -101,6 +101,22 @@ class ManagerTest(unittest.TestCase):
         self.assertIn("Icon=application-x-executable",
                       (self.paths.applications_dir / "sparrow.desktop").read_text())
 
+    def test_set_name_and_repo(self):
+        manager = AppManager(self.paths)
+        app = self.new_app(manager)
+        manager.install(app, self.release("2.4.2"))
+        manager.set_name(app, "  Sparrow Wallet ")
+        manager.set_repo(app, "https://github.com/sparrowwallet/sparrow-renamed")
+        entry = (self.paths.applications_dir / "sparrow.desktop").read_text()
+        self.assertIn("Name=Sparrow Wallet\n", entry)
+        self.assertIn("github.com/sparrowwallet/sparrow-renamed", entry)
+        reloaded = AppManager(self.paths).get("sparrow")
+        self.assertEqual((reloaded.name, reloaded.repo), ("Sparrow Wallet", "sparrowwallet/sparrow-renamed"))
+        with self.assertRaises(ValueError):
+            manager.set_name(app, "   ")
+        with self.assertRaises(ValueError):
+            manager.set_repo(app, "not a repo")
+
     def foreign_entry(self, name):
         self.paths.applications_dir.mkdir(parents=True, exist_ok=True)
         path = self.paths.applications_dir / name

@@ -103,7 +103,7 @@ class TarseerWindow(Adw.ApplicationWindow):
         self.populate()
         row = self.rows_by_id[app.id]
         if release is not None:
-            row.release = release  # just installed from the latest release: up to date
+            row.set_release(release)  # freshly fetched (install or repo change)
         row.refresh()
         if is_new:
             self.toast(_("{name} installed").format(name=app.name))

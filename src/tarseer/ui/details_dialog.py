@@ -22,7 +22,8 @@ class DetailsDialog(Adw.Dialog):
 
     __gtype_name__ = "TarseerDetailsDialog"
     __gsignals__ = {
-        # (ManagedApp, Release | None) — same shape as AddDialog's signal.
+        # (ManagedApp, Release | None): the app's latest release if it was just
+        # fetched, None to keep the row's last check result. Same as AddDialog's.
         "app-changed": (GObject.SignalFlags.RUN_FIRST, None, (object, object)),
         "app-removed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
         # Toast for the main window (the dialog may be closed by then).
@@ -132,7 +133,7 @@ class DetailsDialog(Adw.Dialog):
             return
         self.repo_row.set_sensitive(False)
 
-        def on_success(_release):
+        def on_success(release):
             self.repo_row.set_sensitive(True)
             self._finish()
             try:
@@ -141,8 +142,9 @@ class DetailsDialog(Adw.Dialog):
                 self.toast(str(e))
                 return
             self.refresh()
-            self.toast(_("Repository changed. Check for updates to compare versions."))
-            self.emit("app-changed", self.app, None)
+            self.toast(_("Repository changed"))
+            # The release just fetched replaces the row's check result from the old repo.
+            self.emit("app-changed", self.app, release)
 
         def on_error(error: Exception):
             self.repo_row.set_sensitive(True)

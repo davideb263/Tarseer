@@ -9,7 +9,7 @@ found while working.
       what's worth fixing. Findings (2026-11-23):
   - [x] 1. Goreleaser `_`-separated names (`tool_1.2.3_linux_x86_64`) not tokenized
   - [x] 2. `x86-64` (hyphen) rejected as i686 on x86_64
-  - [ ] 3. Details: changing the repo keeps the old repo's pending release on the row
+  - [x] 3. Details: changing the repo keeps the old repo's pending release on the row
   - [ ] 4. `install`: launcher/config failure after extract leaves app half-registered
   - [ ] 5. Saved asset pattern's `.+?` can match another variant (`-musl`, `-debug`)
   - [ ] 6. Rollback doesn't revalidate executable/icon; `previous_tag=None` → "not installed"
@@ -54,6 +54,10 @@ found while working.
       tooltip). Consider an "error details" action.
 - [ ] The "Open Folder" button has not been tested by Claude (it would open a
       window on the user's desktop); verified manually: ☐
+
+- [ ] Changing the repository keeps the old release file pattern; if the new
+      repo names its files differently, Update fails with "no file matches".
+      Re-pick the file on repo change (ties in with editing the pattern).
 
 ## Done
 - [x] v1: scaffold, core logic, main window, Add App dialog, details dialog

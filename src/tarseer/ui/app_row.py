@@ -61,6 +61,11 @@ class AppRow(Adw.ActionRow):
                 return
         self.icon.set_from_icon_name("application-x-executable")
 
+    def set_release(self, release: Release) -> None:
+        """Replace the last check result (e.g. after the repository changed)."""
+        self.release = release
+        self._error = None
+
     @property
     def has_update(self) -> bool:
         return bool(self.release and self.manager.update_available(self.app, self.release))

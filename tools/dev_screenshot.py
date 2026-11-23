@@ -30,6 +30,10 @@ parser.add_argument("out", help="final screenshot path")
 parser.add_argument("--check", action="store_true", help="run 'Check for updates' first")
 parser.add_argument("--update", metavar="APP_ID", help="then update this app")
 parser.add_argument("--progress-shot", metavar="PATH", help="screenshot 3s into the update")
+parser.add_argument("--add", metavar="REPO", help="walk through the Add App dialog for REPO")
+parser.add_argument("--add-shots", metavar="PREFIX",
+                    help="with --add: save PREFIX-repo.png, -asset.png, -progress.png, -review.png")
+parser.add_argument("--add-name", help="with --add: override the suggested name")
 parser.add_argument("--size", default="720x560")
 parser.add_argument("--timeout", type=float, default=300)
 args = parser.parse_args()
@@ -43,9 +47,60 @@ def screenshot(win, path):
     w, h = win.get_width(), win.get_height()
     snap = Gtk.Snapshot()
     Gtk.WidgetPaintable.new(win).snapshot(snap, w, h)
-    texture = win.get_renderer().render_texture(snap.to_node(), Graphene.Rect().init(0, 0, w, h))
+    node = snap.to_node()
+    if node is None:  # nothing drawn yet
+        print("skipped (not drawn yet)", path, file=sys.stderr)
+        return
+    texture = win.get_renderer().render_texture(node, Graphene.Rect().init(0, 0, w, h))
     texture.save_to_png(path)
     print("saved", path)
+
+
+def wait_for(condition, then, interval=300):
+    def poll():
+        if time.monotonic() - started > args.timeout:
+            print("timeout", file=sys.stderr)
+            app.quit()
+            return GLib.SOURCE_REMOVE
+        if not condition():
+            return GLib.SOURCE_CONTINUE
+        then()
+        return GLib.SOURCE_REMOVE
+    GLib.timeout_add(interval, poll)
+
+
+def drive_add_dialog(win, then):
+    """Open the dialog and click through it, screenshotting each step."""
+    from tarseer.ui.add_dialog import AddDialog
+
+    win.activate_action("win.add-app", None)
+    shot = (lambda name: screenshot(win, f"{args.add_shots}-{name}.png")) if args.add_shots else (lambda name: None)
+
+    def dialog():
+        return next((d for d in [win.get_visible_dialog()] if isinstance(d, AddDialog)), None)
+
+    def tag():
+        d = dialog()
+        return d.nav.get_visible_page().get_tag() if d else None
+
+    def step_repo():
+        dialog().repo_entry.set_text(args.add)
+        GLib.timeout_add(800, lambda: (shot("repo"), dialog().on_continue(),
+                                       wait_for(lambda: tag() == "asset", step_asset))[-1] and False)
+
+    def step_asset():
+        if args.add_name:
+            dialog().name_entry.set_text(args.add_name)
+        GLib.timeout_add(600, lambda: (shot("asset"), dialog().on_install(), progress_shot())[-1] and False)
+
+    def progress_shot():
+        GLib.timeout_add(2500, lambda: (shot("progress") if tag() == "progress" else None) and False)
+        wait_for(lambda: tag() == "review", step_review)
+
+    def step_review():
+        GLib.timeout_add(800, lambda: (shot("review"), dialog().on_done(), then())[-1] and False)
+
+    wait_for(lambda: tag() == "repo", step_repo)
 
 
 def wait_idle(win, then):
@@ -79,6 +134,12 @@ def on_activate(application):
         else:
             finish()
 
+    def do_add():
+        if args.add:
+            drive_add_dialog(win, lambda: GLib.timeout_add(800, lambda: do_check() and False))
+        else:
+            do_check()
+
     def do_check():
         if args.check:
             win.activate_action("win.check-updates", None)
@@ -86,8 +147,15 @@ def on_activate(application):
         else:
             do_update()
 
-    GLib.timeout_add(800, lambda: do_check() and False)
+    GLib.timeout_add(800, lambda: do_add() and False)
 
 
+def excepthook(*exc_info):
+    # An exception inside a GLib callback would otherwise leave the app running until --timeout.
+    sys.__excepthook__(*exc_info)
+    app.quit()
+
+
+sys.excepthook = excepthook
 app.connect_after("activate", on_activate)
 sys.exit(app.run([sys.argv[0]]))

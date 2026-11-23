@@ -11,6 +11,13 @@ template $TarseerWindow: Adw.ApplicationWindow {
     Adw.HeaderBar {
       [start]
       Button {
+        icon-name: "list-add-symbolic";
+        tooltip-text: _("Add App");
+        action-name: "win.add-app";
+      }
+
+      [start]
+      Button {
         icon-name: "view-refresh-symbolic";
         tooltip-text: _("Check for Updates");
         action-name: "win.check-updates";
@@ -40,7 +47,6 @@ template $TarseerWindow: Adw.ApplicationWindow {
               label: _("_Add App");
               use-underline: true;
               halign: center;
-              // Wired up in milestone 4 (add-app dialog).
               action-name: "win.add-app";
 
               styles [

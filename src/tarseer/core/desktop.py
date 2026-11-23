@@ -59,13 +59,16 @@ def _is_program(path: Path) -> str | None:
     return None
 
 
-def guess_executable(install_dir: Path, hint: str) -> str | None:
-    """Relative path of the most likely main program, or None."""
+def _rank(scored: list[tuple[float, str]]) -> list[str]:
+    scored.sort(key=lambda t: (-t[0], t[1]))
+    return [rel for _, rel in scored]
+
+
+def _score_executables(install_dir: Path, hint: str) -> list[tuple[float, str, bool]]:
+    """(score, relative path, plausible-main-program) for every program found."""
     want = _simplify(hint)
-    best: tuple[int, str] | None = None
+    out = []
     for path, depth in _walk(install_dir, MAX_EXEC_DEPTH, EXEC_SKIP_DIRS):
-        if EXEC_NOISE.search(path.name):
-            continue
         kind = _is_program(path)
         if kind is None:
             continue
@@ -82,10 +85,23 @@ def guess_executable(install_dir: Path, hint: str) -> str | None:
             score += 12
         if kind == "script":
             score -= 2
-        rel = path.relative_to(install_dir).as_posix()
-        if best is None or score > best[0]:
-            best = (score, rel)
-    return best[1] if best else None
+        plausible = not EXEC_NOISE.search(path.name)
+        if not plausible:
+            score -= 1000
+        out.append((score, path.relative_to(install_dir).as_posix(), plausible))
+    return out
+
+
+def rank_executables(install_dir: Path, hint: str) -> list[str]:
+    """Every program in the install dir, most likely main program first."""
+    return _rank([(s, rel) for s, rel, _ in _score_executables(install_dir, hint)])
+
+
+def guess_executable(install_dir: Path, hint: str) -> str | None:
+    """Relative path of the most likely main program, or None."""
+    plausible = [(s, rel) for s, rel, ok in _score_executables(install_dir, hint) if ok]
+    ranked = _rank(plausible)
+    return ranked[0] if ranked else None
 
 
 def _png_width(path: Path) -> int:
@@ -99,9 +115,10 @@ def _png_width(path: Path) -> int:
     return 0
 
 
-def guess_icon(install_dir: Path, hint: str) -> str | None:
+def _score_icons(install_dir: Path, hint: str) -> list[tuple[float, str, bool]]:
+    """(score, relative path, looks-like-the-app-icon) for every usable image."""
     want = _simplify(hint)
-    best: tuple[float, str] | None = None
+    out = []
     for path, depth in _walk(install_dir, MAX_ICON_DEPTH, ICON_SKIP_DIRS):
         suffix = path.suffix.lower()
         if suffix not in ICON_SUFFIXES:
@@ -114,8 +131,8 @@ def guess_icon(install_dir: Path, hint: str) -> str | None:
             score += 30
         elif "icon" in name or "logo" in name:
             score += 10
-        else:
-            continue  # random images (toolbar buttons, docs) are not app icons
+        # Anything else is probably a toolbar button or a doc image.
+        relevant = score > 0
         if suffix == ".svg":
             score += 20
         else:
@@ -124,10 +141,19 @@ def guess_icon(install_dir: Path, hint: str) -> str | None:
                 continue
             score += min(width, 512) / 32  # prefer large, up to 512px
         score -= depth
-        rel = path.relative_to(install_dir).as_posix()
-        if best is None or score > best[0]:
-            best = (score, rel)
-    return best[1] if best else None
+        out.append((score, path.relative_to(install_dir).as_posix(), relevant))
+    return out
+
+
+def rank_icons(install_dir: Path, hint: str) -> list[str]:
+    """Every usable image in the install dir, most likely app icon first."""
+    return _rank([(s, rel) for s, rel, _ in _score_icons(install_dir, hint)])
+
+
+def guess_icon(install_dir: Path, hint: str) -> str | None:
+    relevant = [(s, rel) for s, rel, ok in _score_icons(install_dir, hint) if ok]
+    ranked = _rank(relevant)
+    return ranked[0] if ranked else None
 
 
 def _quote_exec_arg(arg: str) -> str:

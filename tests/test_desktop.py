@@ -54,6 +54,16 @@ class DesktopTest(unittest.TestCase):
         write_tree(self.dir, {"images/button.png": PNG_256})
         self.assertIsNone(desktop.guess_icon(self.dir, "calibre"))
 
+    def test_rank_lists_everything_best_first(self):
+        write_tree(self.dir, {
+            "bin/Sparrow": ELF, "bin/sparrow-cli": ELF, "uninstall": ELF,
+            "lib/Sparrow.png": PNG_256, "images/button.png": PNG_256,
+        }, executables=("bin/Sparrow", "bin/sparrow-cli", "uninstall"))
+        execs = desktop.rank_executables(self.dir, "Sparrow")
+        self.assertEqual(execs[0], "bin/Sparrow")
+        self.assertEqual(execs[-1], "uninstall")  # noise ranked last, but still offered
+        self.assertEqual(desktop.rank_icons(self.dir, "Sparrow"), ["lib/Sparrow.png", "images/button.png"])
+
     def test_render_entry_quotes_paths(self):
         app = ManagedApp(id="my-app", name="My App", repo="o/r", asset_pattern=".*",
                          executable="bin/my app", icon="icon.png")

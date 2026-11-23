@@ -4,6 +4,8 @@ from gi.repository import Adw, Gio, Gtk
 
 from ..core.config import ConfigError
 from ..core.manager import AppManager
+from ..core.models import ManagedApp, Release
+from .add_dialog import AddDialog
 from .app_row import AppRow
 
 APP_ID = "io.github.davideb263.Tarseer"
@@ -32,7 +34,13 @@ class TarseerWindow(Adw.ApplicationWindow):
         self.add_action(self.check_action)
         self.get_application().set_accels_for_action("win.check-updates", ["<primary>r", "F5"])
 
+        self.add_app_action = Gio.SimpleAction.new("add-app", None)
+        self.add_app_action.connect("activate", lambda *_: self.open_add_dialog())
+        self.add_action(self.add_app_action)
+        self.get_application().set_accels_for_action("win.add-app", ["<primary>n"])
+
         self.rows: list[AppRow] = []
+        self.rows_by_id: dict[str, AppRow] = {}
         self._pending_checks = 0
         self._check_errors = 0
         self._shown_messages: set[str] = set()
@@ -45,18 +53,41 @@ class TarseerWindow(Adw.ApplicationWindow):
             self.error_page.set_description(str(e))
             self.main_stack.set_visible_child_name("error")
             self.check_action.set_enabled(False)
+            self.add_app_action.set_enabled(False)
             return
         self.populate()
 
     def populate(self) -> None:
+        """Sync the list with the manager, keeping existing rows (and their check state)."""
         for row in self.rows:
             self.list_box.remove(row)
-        self.rows = [AppRow(self.manager, app) for app in self.manager.apps]
-        for row in self.rows:
-            row.connect("notify-user", lambda _row, msg: self.toast(msg))
+        previous, self.rows_by_id = self.rows_by_id, {}
+        for app in self.manager.apps:
+            row = previous.get(app.id)
+            if row is None:
+                row = AppRow(self.manager, app)
+                row.connect("notify-user", lambda _row, msg: self.toast(msg))
+            self.rows_by_id[app.id] = row
             self.list_box.append(row)
+        self.rows = list(self.rows_by_id.values())
         self.main_stack.set_visible_child_name("list" if self.rows else "empty")
-        self.check_action.set_enabled(bool(self.rows))
+        self.check_action.set_enabled(bool(self.rows) and not self._pending_checks)
+
+    # ── Add app ──────────────────────────────────────────────────────────────
+    def open_add_dialog(self) -> None:
+        dialog = AddDialog(self.manager)
+        dialog.connect("app-changed", self._on_app_changed)
+        dialog.present(self)
+
+    def _on_app_changed(self, _dialog, app: ManagedApp, release: Release | None) -> None:
+        is_new = app.id not in self.rows_by_id
+        self.populate()
+        row = self.rows_by_id[app.id]
+        if release is not None:
+            row.release = release  # just installed from the latest release: up to date
+        row.refresh()
+        if is_new:
+            self.toast(_("{name} installed").format(name=app.name))
 
     def toast(self, message: str) -> None:
         # During a check, many rows can fail the same way (e.g. rate limit): show it once.

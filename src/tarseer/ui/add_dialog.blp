@@ -1,0 +1,185 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $TarseerAddDialog: Adw.Dialog {
+  title: _("Add App");
+  content-width: 500;
+  content-height: 600;
+
+  child: Adw.ToastOverlay toast_overlay {
+    child: Adw.NavigationView nav {
+      // ── Step 1: repository ──────────────────────────────────────────────
+      Adw.NavigationPage {
+        title: _("Add App");
+        tag: "repo";
+
+        child: Adw.ToolbarView {
+          [top]
+          Adw.HeaderBar {}
+
+          content: Adw.PreferencesPage {
+            Adw.PreferencesGroup {
+              description: _("Enter a GitHub repository that publishes Linux tarballs in its releases.");
+
+              Adw.EntryRow repo_entry {
+                title: _("Repository (owner/name or URL)");
+                changed => $on_repo_changed();
+                entry-activated => $on_continue();
+              }
+            }
+
+            Adw.PreferencesGroup {
+              Button continue_button {
+                label: _("_Continue");
+                use-underline: true;
+                halign: center;
+                clicked => $on_continue();
+
+                styles [
+                  "pill",
+                  "suggested-action",
+                ]
+              }
+            }
+          };
+        };
+      }
+
+      // ── Step 2: name + release file ─────────────────────────────────────
+      Adw.NavigationPage {
+        title: _("Choose File");
+        tag: "asset";
+
+        child: Adw.ToolbarView {
+          [top]
+          Adw.HeaderBar {}
+
+          content: Adw.PreferencesPage {
+            Adw.PreferencesGroup {
+              Adw.EntryRow name_entry {
+                title: _("Name");
+                changed => $on_name_changed();
+              }
+            }
+
+            Adw.PreferencesGroup assets_group {
+              title: _("Release File");
+            }
+
+            Adw.PreferencesGroup {
+              Button install_button {
+                label: _("_Install");
+                use-underline: true;
+                halign: center;
+                clicked => $on_install();
+
+                styles [
+                  "pill",
+                  "suggested-action",
+                ]
+              }
+            }
+          };
+        };
+      }
+
+      // ── Step 3: progress ────────────────────────────────────────────────
+      Adw.NavigationPage {
+        title: _("Installing");
+        tag: "progress";
+        can-pop: false;
+
+        child: Adw.ToolbarView {
+          [top]
+          Adw.HeaderBar {
+            show-end-title-buttons: false;
+          }
+
+          content: Adw.StatusPage progress_page {
+            icon-name: "folder-download-symbolic";
+            title: _("Installing…");
+
+            child: ProgressBar progress_bar {
+              width-request: 280;
+              halign: center;
+            };
+          };
+        };
+      }
+
+      // ── Step 4: review the menu entry ───────────────────────────────────
+      Adw.NavigationPage {
+        title: _("App Grid Entry");
+        tag: "review";
+        can-pop: false;
+
+        child: Adw.ToolbarView {
+          [top]
+          Adw.HeaderBar {}
+
+          content: Adw.PreferencesPage {
+            Adw.PreferencesGroup {
+              Box {
+                orientation: vertical;
+                spacing: 6;
+
+                Image review_icon {
+                  pixel-size: 96;
+                  margin-bottom: 6;
+                }
+
+                Label review_title {
+                  wrap: true;
+                  justify: center;
+
+                  styles [
+                    "title-1",
+                  ]
+                }
+
+                Label review_subtitle {
+                  wrap: true;
+                  justify: center;
+
+                  styles [
+                    "dim-label",
+                  ]
+                }
+              }
+            }
+
+            Adw.PreferencesGroup {
+              title: _("App Grid Entry");
+              description: _("Tarseer picked these automatically. Change them if the app doesn't start or shows the wrong icon.");
+
+              Adw.ComboRow exec_row {
+                title: _("Program");
+                enable-search: true;
+              }
+
+              Adw.ComboRow icon_row {
+                title: _("Icon");
+                enable-search: true;
+                notify::selected => $on_icon_selected();
+              }
+            }
+
+            Adw.PreferencesGroup {
+              Button {
+                label: _("_Done");
+                use-underline: true;
+                halign: center;
+                clicked => $on_done();
+
+                styles [
+                  "pill",
+                  "suggested-action",
+                ]
+              }
+            }
+          };
+        };
+      }
+    };
+  };
+}

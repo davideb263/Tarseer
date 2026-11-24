@@ -46,8 +46,11 @@ v0.3 plan (agreed 2026-11-24):
        once a day → `check-interval-hours`), "Last Checked" (live). Changes call
        `BackgroundService.restart()`. Successful window checks also set `last-check`,
        so the background doesn't repeat them. Verified in a dev sandbox
-       (on/off/frequency/refusal via `TARSEER_DEV_DENY_BACKGROUND`); the real portal
-       still needs a manual test (`6c8002b`).
+       (on/off/frequency/refusal via `TARSEER_DEV_DENY_BACKGROUND`). The first real
+       test failed (libportal from Python: callback got an extra argument, and the
+       autostart Exec lost its command line); the portal is now called over D-Bus
+       and was verified for real (correct `Exec=… --command=tarseer … --background`,
+       removed again on disable). Background-apps list in Quick Settings: manual test (`6c8002b`).
 6. [ ] **Dev/test.** Done in step 3: `TARSEER_CHECK_INTERVAL=<s>`, `--check-now`,
        dev settings keyfile, `dev_screenshot.py --background-check`. Left: screenshot
        of the Preferences group; manual test of the portal prompt, autostart after

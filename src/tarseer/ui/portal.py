@@ -1,33 +1,39 @@
 """Background portal: start at login and the status line in GNOME's
-background-apps list. Asynchronous; failures are reported, never raised."""
+background-apps list. Asynchronous; failures are reported, never raised.
+
+Talks D-Bus directly: libportal's request_background takes the command line
+as a GPtrArray that PyGObject doesn't pass correctly (the autostart entry
+ended up with an empty command)."""
 
 from __future__ import annotations
 
 import os
+import secrets
 import sys
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
-import gi
+from gi.repository import Gio, GLib
 
-gi.require_version("Xdp", "1.0")
-gi.require_version("XdpGtk4", "1.0")
-from gi.repository import GLib, Gtk, Xdp, XdpGtk4  # noqa: E402
+if TYPE_CHECKING:
+    from gi.repository import Gtk
 
 BACKGROUND_COMMAND = ["tarseer", "--background"]
-_portal: Xdp.Portal | None = None
+_BUS_NAME = "org.freedesktop.portal.Desktop"
+_OBJECT_PATH = "/org/freedesktop/portal/desktop"
+_INTERFACE = "org.freedesktop.portal.Background"
+# The portal rejects longer status messages.
+_STATUS_MAX = 96
 
 
-def _get_portal() -> Xdp.Portal:
-    global _portal
-    if _portal is None:
-        _portal = Xdp.Portal.initable_new()
-    return _portal
+def _bus() -> Gio.DBusConnection:
+    return Gio.bus_get_sync(Gio.BusType.SESSION, None)
 
 
 def request_autostart(window: Gtk.Window | None, enable: bool, reason: str,
                       done: Callable[[bool, Exception | None], None]) -> None:
     """Ask to start `tarseer --background` at login (enable) or stop doing so.
-    done(granted, error): granted is False if the user or the system refused."""
+    done(granted, error) runs on the main loop; granted is False if the user
+    or the system refused. (`window` is unused: GNOME shows no dialog for this.)"""
     if os.environ.get("TARSEER_DEV_ROOT"):
         # The portal knows nothing about dev sandboxes: never touch the real autostart.
         # TARSEER_DEV_DENY_BACKGROUND=1 acts like the user refused (to see the alert).
@@ -37,20 +43,63 @@ def request_autostart(window: Gtk.Window | None, enable: bool, reason: str,
         GLib.idle_add(lambda: done(granted, None) and False)
         return
 
-    def finish(portal, result):
-        try:
-            done(portal.request_background_finish(result), None)
-        except GLib.Error as e:
-            done(False, e)
-
     try:
-        portal = _get_portal()
+        bus = _bus()
     except GLib.Error as e:
         GLib.idle_add(lambda: done(False, e) and False)
         return
-    parent = XdpGtk4.parent_new_gtk(window) if window is not None else None
-    flags = Xdp.BackgroundFlags.AUTOSTART if enable else Xdp.BackgroundFlags.NONE
-    portal.request_background(parent, reason, BACKGROUND_COMMAND, flags, None, finish, None)
+
+    # The reply arrives as a Response signal on a request object whose path the
+    # portal derives from our bus name and this token: subscribe before calling.
+    token = "tarseer_" + secrets.token_hex(8)
+    sender = bus.get_unique_name().lstrip(":").replace(".", "_")
+    state = {"path": f"{_OBJECT_PATH}/request/{sender}/{token}", "sub": 0, "finished": False}
+
+    def finish(granted: bool, error: Exception | None) -> None:
+        if state["finished"]:
+            return
+        state["finished"] = True
+        if state["sub"]:
+            bus.signal_unsubscribe(state["sub"])
+            state["sub"] = 0
+        done(granted, error)
+
+    def on_response(_conn, _sender, _path, _iface, _signal, params):
+        code, results = params.unpack()
+        # 0: success, 1: cancelled by the user, 2: other (e.g. denied).
+        granted = code == 0 and bool(results.get("background", False))
+        if enable and code == 0 and not results.get("autostart", False):
+            granted = False
+        finish(granted, None)
+
+    def subscribe(path: str) -> None:
+        state["sub"] = bus.signal_subscribe(
+            _BUS_NAME, "org.freedesktop.portal.Request", "Response", path, None,
+            Gio.DBusSignalFlags.NONE, on_response)
+
+    def on_called(conn, result):
+        try:
+            (path,) = conn.call_finish(result).unpack()
+        except GLib.Error as e:
+            finish(False, e)
+            return
+        if path != state["path"] and not state["finished"]:
+            # An old portal that ignores handle_token: listen where it says.
+            bus.signal_unsubscribe(state["sub"])
+            state["path"] = path
+            subscribe(path)
+
+    subscribe(state["path"])
+    options = {
+        "handle_token": GLib.Variant("s", token),
+        "reason": GLib.Variant("s", reason),
+        "autostart": GLib.Variant("b", enable),
+        "commandline": GLib.Variant("as", BACKGROUND_COMMAND),
+        "dbus-activatable": GLib.Variant("b", False),
+    }
+    bus.call(_BUS_NAME, _OBJECT_PATH, _INTERFACE, "RequestBackground",
+             GLib.Variant("(sa{sv})", ("", options)), GLib.VariantType("(o)"),
+             Gio.DBusCallFlags.NONE, -1, None, on_called)
 
 
 def set_status(message: str) -> None:
@@ -59,13 +108,18 @@ def set_status(message: str) -> None:
         print(f"Tarseer (dev): background status: {message}", file=sys.stderr)
         return
 
-    def finish(portal, result):
+    def on_called(conn, result):
         try:
-            portal.set_background_status_finish(result)
+            conn.call_finish(result)
         except GLib.Error as e:
             print(f"Tarseer: could not set the background status: {e}", file=sys.stderr)
 
     try:
-        _get_portal().set_background_status(message, None, finish, None)
+        bus = _bus()
     except GLib.Error as e:
         print(f"Tarseer: could not set the background status: {e}", file=sys.stderr)
+        return
+    options = {"message": GLib.Variant("s", message[:_STATUS_MAX])}
+    bus.call(_BUS_NAME, _OBJECT_PATH, _INTERFACE, "SetStatus",
+             GLib.Variant("(a{sv})", (options,)), None,
+             Gio.DBusCallFlags.NONE, -1, None, on_called)

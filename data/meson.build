@@ -25,6 +25,18 @@ if appstreamcli.found()
     args: ['validate', '--no-net', '--explain', metainfo_file])
 endif
 
+# D-Bus activation: lets a notification start Tarseer after a login-only check exited.
+service_conf = configuration_data()
+service_conf.set('APP_ID', app_id)
+service_conf.set('BINDIR', get_option('prefix') / get_option('bindir'))
+configure_file(
+  input: app_id + '.service.in',
+  output: app_id + '.service',
+  configuration: service_conf,
+  install: true,
+  install_dir: get_option('datadir') / 'dbus-1' / 'services',
+)
+
 install_data(app_id + '.gschema.xml',
   install_dir: get_option('datadir') / 'glib-2.0' / 'schemas',
 )

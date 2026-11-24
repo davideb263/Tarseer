@@ -8,4 +8,4 @@ Type=Application
 Categories=GTK;GNOME;Utility;PackageManager;
 Keywords=tarball;tar;github;release;update;installer;
 StartupNotify=true
-DBusActivatable=false
+DBusActivatable=true

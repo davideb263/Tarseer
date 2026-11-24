@@ -159,6 +159,8 @@ class TarseerWindow(Adw.ApplicationWindow):
                 _("Update every app with an available update, one after another"))
             self.update_all_button.add_css_class("suggested-action")
         self.stop_updates_action.set_enabled(updating_all and not self._update_stopped)
+        if not updates:
+            self.get_application().updates_changed()
 
     # ── Add app ──────────────────────────────────────────────────────────────
     def open_add_dialog(self) -> None:
@@ -228,7 +230,7 @@ class TarseerWindow(Adw.ApplicationWindow):
         self._shown_messages.clear()
         # Results arrive on the main loop in order, all before on_success/on_error.
         run_task(self.manager.check_updates, apps, on_main_loop(self._on_app_checked),
-                 on_success=lambda _results: self._on_check_finished(),
+                 on_success=self._on_check_finished,
                  on_error=self._on_check_failed)
 
     def _on_app_checked(self, app: ManagedApp, result: CheckResult) -> None:
@@ -257,9 +259,10 @@ class TarseerWindow(Adw.ApplicationWindow):
         self._sync_actions()
         show_error(self, _("Could Not Check for Updates"), error)
 
-    def _on_check_finished(self) -> None:
+    def _on_check_finished(self, results: dict[str, CheckResult]) -> None:
         self._checking = False
         self._sync_actions()
+        self.get_application().check_finished(results, background=False)
         if self._check_errors:
             return  # each failing app already showed its own toast or alert
         updates = sum(1 for r in self.rows if r.has_update)

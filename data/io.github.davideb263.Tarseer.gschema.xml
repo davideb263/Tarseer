@@ -21,6 +21,11 @@
       <summary>Hours between background checks</summary>
       <description>0 checks only once at login, then exits.</description>
     </key>
+    <key name="notified-tags" type="a{ss}">
+      <default>{}</default>
+      <summary>Updates already announced</summary>
+      <description>App id to release tag of updates the user was notified about or saw in the window.</description>
+    </key>
     <key name="last-check" type="x">
       <default>0</default>
       <summary>Time of the last successful background check (Unix seconds)</summary>

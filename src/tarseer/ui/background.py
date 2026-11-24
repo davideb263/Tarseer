@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Callable
 from gi.repository import GLib
 
 from ..core.manager import AppManager
-from ..core.models import ManagedApp
 from ..core.schedule import check_due, check_succeeded
 from . import portal
 from .settings import app_settings
@@ -53,8 +52,6 @@ class BackgroundService:
         self._login_only = False
         self._retries_left = 0
         self._timer_id = 0
-        # Called on the main loop with the apps that have updates after a check.
-        self.on_updates: Callable[[list[ManagedApp]], None] | None = None
 
     # ── Lifecycle ────────────────────────────────────────────────────────────
     def start_at_login(self, delay: int = LOGIN_DELAY) -> bool:
@@ -180,11 +177,8 @@ class BackgroundService:
             succeeded = check_succeeded(results)
             if succeeded:
                 app_settings().set_int64("last-check", int(time.time()))
-            updates = manager.updates
-            _log(f"checked {len(results)} apps, {len(updates)} updates")
-            self.app.background_check_finished()
-            if updates and self.on_updates is not None:
-                self.on_updates(updates)
+            _log(f"checked {len(results)} apps, {len(manager.updates)} updates")
+            self.app.check_finished(results, background=True)
             done(succeeded)
 
         def on_error(error: Exception):

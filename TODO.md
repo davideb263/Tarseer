@@ -31,9 +31,15 @@ v0.3 plan (agreed 2026-11-24):
        and token loading; an open window refreshes after a background check.
        `ui/portal.py` wraps the Background portal (autostart + status); calling it
        to register autostart is step 5 (`7c6a19e`).
-4. [ ] **Notifications.** One `Gio.Notification` per run listing the apps; clicking
-       it only opens the window (no action buttons). Notify only about tags not
-       notified before; withdraw it once updates are installed.
+4. [x] **Notifications.** One `Gio.Notification` per background run ("6 Updates
+       Available" / "Alpha, Bravo, Charlie, Delta and 2 more"), not while the window
+       has focus. Only for tags not announced before (`notified-tags`; updates seen
+       in a window check count as announced; `core.schedule.notification_state`).
+       Withdrawn when a check finds no updates, or once every announced app has a
+       result and none has an update left. Clicking runs `app.show-updates`: opens
+       the window and checks if this process has no results. `DBusActivatable=true`
+       + D-Bus service file, so the click works after a login-only run exited.
+       Verified with faked GitHub + `dbus-monitor` (add / quiet / add / remove).
 5. [ ] **Preferences "Updates" group.** Switch "Check for updates in the background"
        (opt-in, default off; calls `portal.request_autostart`), frequency dropdown
        (`check-interval-hours`: 0/6/12/24), "Last checked" (`last-check`); then

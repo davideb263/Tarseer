@@ -6,7 +6,7 @@ from typing import Callable
 
 from gi.repository import Adw, Gio, GLib, GObject, Gtk
 
-from ..core.github import CancelledError, RateLimitError, TokenRejectedError
+from ..core.github import CancelledError
 from ..core.manager import AppManager
 from ..core.models import ManagedApp, Release
 from .tasks import ThrottledProgress, on_main_loop, run_task
@@ -38,10 +38,9 @@ class AppRow(Adw.ActionRow):
         super().__init__()
         self.manager = manager
         self.app = app
-        self.release: Release | None = None
         self.busy = False
         self.queued = False  # waiting for its turn in "Update All"
-        self._error: str | None = None
+        self._update_error: str | None = None  # the last update of this row failed
         # Results of the last update(quiet=True), for the caller to report.
         self.last_error: str | None = None
         self.last_warnings: list[str] = []
@@ -53,16 +52,18 @@ class AppRow(Adw.ActionRow):
     def refresh(self) -> None:
         self.set_title(self.app.name)
         installed = self.app.installed_tag or _("Unknown version")
-        if self.release and self.manager.update_available(self.app, self.release):
-            self.set_subtitle(f"{installed} → {self.release.tag}")
+        release = self.release
+        error = self.error
+        if release and self.manager.update_available(self.app, release):
+            self.set_subtitle(f"{installed} → {release.tag}")
             self.state_stack.set_visible_child_name("queued" if self.queued else "update")
-        elif self._error:
+        elif error:
             self.set_subtitle(installed)
-            self.error_icon.set_tooltip_text(self._error)
+            self.error_icon.set_tooltip_text(error)
             self.state_stack.set_visible_child_name("error")
         else:
             self.set_subtitle(installed)
-            self.state_stack.set_visible_child_name("current" if self.release else "none")
+            self.state_stack.set_visible_child_name("current" if release else "none")
         self._load_icon()
         self.emit("refreshed")
 
@@ -81,45 +82,43 @@ class AppRow(Adw.ActionRow):
 
     def set_release(self, release: Release) -> None:
         """Replace the last check result (e.g. after the repository changed)."""
-        self.release = release
-        self._error = None
+        self.manager.record_release(self.app.id, release)
+        self._update_error = None
+
+    @property
+    def release(self) -> Release | None:
+        """The latest release found by the last check, if it succeeded."""
+        check = self.manager.last_check(self.app.id)
+        return check.release if check else None
+
+    @property
+    def error(self) -> str | None:
+        """Why the last update or check failed, if it did."""
+        if self._update_error:
+            return self._update_error
+        check = self.manager.last_check(self.app.id)
+        return str(check.error) if check and check.error else None
 
     @property
     def has_update(self) -> bool:
-        return bool(self.release and self.manager.update_available(self.app, self.release))
+        release = self.release
+        return bool(release and self.manager.update_available(self.app, release))
 
     # ── Check ────────────────────────────────────────────────────────────────
-    def check(self, done: Callable[["AppRow"], None] | None = None) -> None:
+    def start_check(self) -> bool:
+        """Show the row as checking while the window runs a check. False (and
+        no change) if the row is busy with another operation."""
         if self.busy:
-            if done:
-                done(self)
-            return
+            return False
         self.busy = True
-        self._error = None
+        self._update_error = None
         self.state_stack.set_visible_child_name("checking")
+        return True
 
-        def finish():
-            self.busy = False
-            self.refresh()
-            if done:
-                done(self)
-
-        def on_success(release: Release):
-            self.release = release
-            finish()
-
-        def on_error(error: Exception):
-            self._error = str(error)
-            if isinstance(error, RateLimitError):
-                # Same for every app and the user has to act: the window shows it once.
-                self.emit("show-error", _("GitHub Rate Limit Reached"), str(error))
-            elif isinstance(error, TokenRejectedError):
-                self.emit("show-error", _("Access Token Rejected"), str(error))
-            else:
-                self.emit("notify-user", _("{app}: {error}").format(app=self.app.name, error=error))
-            finish()
-
-        run_task(self.manager.fetch_latest, self.app.repo, on_success=on_success, on_error=on_error)
+    def end_check(self) -> None:
+        """The manager has this row's check result: show it."""
+        self.busy = False
+        self.refresh()
 
     # ── Update ───────────────────────────────────────────────────────────────
     @Gtk.Template.Callback()
@@ -140,7 +139,7 @@ class AppRow(Adw.ActionRow):
             self.refresh()
             return False
         self.busy = True
-        self._error = None
+        self._update_error = None
         self.last_error, self.last_warnings, self.last_cancelled = None, [], False
         release = self.release
         cancel = self._cancel = threading.Event()
@@ -190,7 +189,7 @@ class AppRow(Adw.ActionRow):
                     self.emit("notify-user", _("{app} update cancelled").format(app=self.app.name))
                 finish()
                 return
-            self._error = self.last_error = str(error)
+            self._update_error = self.last_error = str(error)
             if not quiet:
                 self.emit("show-error", _("Could Not Update {app}").format(app=self.app.name), str(error))
             finish()

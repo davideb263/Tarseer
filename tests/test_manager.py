@@ -324,5 +324,101 @@ class ManagerTest(unittest.TestCase):
         self.assertIn("Hand-written", foreign.read_text())
 
 
+class CheckUpdatesTest(unittest.TestCase):
+    """AppManager.check_updates with GitHub replaced by a dict of replies."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        tmp = Path(self._tmp.name)
+        self.paths = Paths(tmp / "opt", tmp / "applications", tmp / "config" / "apps.json")
+        apps = [
+            ManagedApp(id=f"app{i}", name=f"App {i}", repo=f"owner/app{i}",
+                       asset_pattern="x", installed_tag="v1")
+            for i in range(4)
+        ]
+        config.save_apps(self.paths.config_file, apps)
+        self.manager = AppManager(self.paths)
+        self.replies = {}  # repo -> Release or Exception
+        self.calls = []
+        patcher = mock.patch.object(github, "get_latest_release", side_effect=self.fake_latest)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def fake_latest(self, repo):
+        self.calls.append(repo)
+        reply = self.replies.get(repo, Release(tag="v1"))
+        if isinstance(reply, Exception):
+            raise reply
+        return reply
+
+    def test_results_are_returned_cached_and_reported(self):
+        self.replies["owner/app1"] = Release(tag="v2")
+        self.replies["owner/app2"] = github.NotFoundError("gone")
+        seen = []
+        results = self.manager.check_updates(on_result=lambda app, r: seen.append(app.id))
+        self.assertEqual(sorted(results), ["app0", "app1", "app2", "app3"])
+        self.assertEqual(sorted(seen), sorted(results))
+        self.assertEqual(results["app1"].release.tag, "v2")
+        self.assertIsInstance(results["app2"].error, github.NotFoundError)
+        self.assertIsNone(results["app2"].release)
+        self.assertGreater(results["app0"].checked_at, 0)
+        self.assertIs(self.manager.last_check("app1"), results["app1"])
+        self.assertEqual([a.id for a in self.manager.updates], ["app1"])
+
+    def test_only_given_apps_are_checked(self):
+        app = self.manager.get("app3")
+        self.assertEqual(list(self.manager.check_updates([app])), ["app3"])
+        self.assertEqual(self.calls, ["owner/app3"])
+        self.assertIsNone(self.manager.last_check("app0"))
+        self.assertEqual(self.manager.check_updates([]), {})
+
+    def test_rate_limit_stops_the_check(self):
+        limit = github.RateLimitError(None)
+        self.replies["owner/app0"] = limit
+        results = self.manager.check_updates(workers=1)
+        self.assertEqual(self.calls, ["owner/app0"])
+        self.assertTrue(all(r.error is limit for r in results.values()))
+
+    def test_rejected_token_stops_the_check(self):
+        self.replies["owner/app1"] = github.TokenRejectedError()
+        results = self.manager.check_updates(workers=1)
+        self.assertEqual(self.calls, ["owner/app0", "owner/app1"])
+        self.assertIsNotNone(results["app0"].release)
+        for app_id in ("app1", "app2", "app3"):
+            self.assertIsInstance(results[app_id].error, github.TokenRejectedError)
+
+    def test_other_errors_dont_stop_the_check(self):
+        self.replies["owner/app0"] = github.GitHubError("Network error: timeout")
+        results = self.manager.check_updates(workers=1)
+        self.assertEqual(len(self.calls), 4)
+        self.assertEqual(sum(r.error is not None for r in results.values()), 1)
+
+    def test_new_result_replaces_the_old_one(self):
+        self.replies["owner/app0"] = Release(tag="v2")
+        self.manager.check_updates()
+        self.replies["owner/app0"] = github.GitHubError("down")
+        self.manager.check_updates()
+        check = self.manager.last_check("app0")
+        self.assertIsNone(check.release)
+        self.assertEqual(self.manager.updates, [])
+
+    def test_record_release_and_installed_update(self):
+        app = self.manager.get("app2")
+        self.manager.record_release(app.id, Release(tag="v3"))
+        self.assertEqual(self.manager.updates, [app])
+        app.installed_tag = "v3"  # what install() does
+        self.assertEqual(self.manager.updates, [])
+
+    def test_removed_app_loses_its_result(self):
+        app = self.manager.get("app0")
+        self.manager.record_release(app.id, Release(tag="v2"))
+        self.manager.remove(app)
+        self.assertIsNone(self.manager.last_check("app0"))
+        # A check still running for a removed app doesn't bring its result back.
+        self.manager.check_updates([app])
+        self.assertIsNone(self.manager.last_check("app0"))
+
+
 if __name__ == "__main__":
     unittest.main()

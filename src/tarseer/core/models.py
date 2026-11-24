@@ -83,3 +83,12 @@ class Release:
     name: str = ""
     html_url: str = ""
     assets: list[Asset] = field(default_factory=list)
+
+
+@dataclass
+class CheckResult:
+    """Outcome of looking up an app's latest release: `release` or `error`."""
+
+    release: Release | None = None
+    error: Exception | None = None
+    checked_at: float = 0.0  # time.time() of the lookup

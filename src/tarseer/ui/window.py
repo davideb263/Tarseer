@@ -5,14 +5,16 @@ import sys
 from gi.repository import Adw, Gio, Gtk
 
 from ..core.config import ConfigError
+from ..core.github import RateLimitError, TokenRejectedError
 from ..core.manager import AppManager
-from ..core.models import ManagedApp, Release
+from ..core.models import CheckResult, ManagedApp, Release
 from .add_dialog import AddDialog
 from .alerts import show_error, show_launcher_warnings
 from .details_dialog import DetailsDialog
 from .preferences_dialog import PreferencesDialog
 from . import token_store
 from .app_row import AppRow
+from .tasks import on_main_loop, run_task
 
 APP_ID = "io.github.davideb263.Tarseer"
 
@@ -60,7 +62,7 @@ class TarseerWindow(Adw.ApplicationWindow):
 
         self.rows: list[AppRow] = []
         self.rows_by_id: dict[str, AppRow] = {}
-        self._pending_checks = 0
+        self._checking = False
         self._check_errors = 0
         self._shown_messages: set[str] = set()
         # "Update All" run: rows still waiting, and the rows it handled so far.
@@ -140,10 +142,10 @@ class TarseerWindow(Adw.ApplicationWindow):
         if self.manager is None:
             return
         updating_all = self._update_queue is not None
-        self.check_action.set_enabled(bool(self.rows) and not self._pending_checks and not updating_all)
+        self.check_action.set_enabled(bool(self.rows) and not self._checking and not updating_all)
         updates = sum(1 for r in self.rows if r.has_update)
         self.update_all_button.set_visible(updating_all or updates >= 2)
-        self.update_all_action.set_enabled(updates >= 1 and not self._pending_checks and not updating_all)
+        self.update_all_action.set_enabled(updates >= 1 and not self._checking and not updating_all)
         # While running, the same button stops the run.
         if updating_all:
             self.update_all_button.set_action_name("win.stop-updates")
@@ -190,7 +192,7 @@ class TarseerWindow(Adw.ApplicationWindow):
     def _first_time_this_check(self, message: str) -> bool:
         """During a check, many rows can fail the same way (e.g. rate limit or a
         revoked token): False if `message` was already shown in this check."""
-        if not self._pending_checks:
+        if not self._checking:
             return True
         if message in self._shown_messages:
             return False
@@ -208,27 +210,55 @@ class TarseerWindow(Adw.ApplicationWindow):
 
     # ── Check for updates ────────────────────────────────────────────────────
     def check_updates(self) -> None:
-        if self._pending_checks or not self.rows or self._update_queue is not None:
+        if self._checking or not self.rows or self._update_queue is not None:
             return
         if self._token_loading:
             self._check_after_token = True  # use the saved token, not the 60/hour limit
             return
-        self._pending_checks = len(self.rows)
+        # Rows busy with another operation (e.g. in a details dialog) are skipped.
+        apps = [row.app for row in self.rows if row.start_check()]
+        if not apps:
+            return
+        self._checking = True
         self._sync_actions()
         self._check_errors = 0
         self._shown_messages.clear()
-        for row in self.rows:
-            row.check(done=self._on_row_checked)
+        # Results arrive on the main loop in order, all before on_success/on_error.
+        run_task(self.manager.check_updates, apps, on_main_loop(self._on_app_checked),
+                 on_success=lambda _results: self._on_check_finished(),
+                 on_error=self._on_check_failed)
 
-    def _on_row_checked(self, row: AppRow) -> None:
-        self._pending_checks -= 1
-        if row.state_stack.get_visible_child_name() == "error":
+    def _on_app_checked(self, app: ManagedApp, result: CheckResult) -> None:
+        row = self.rows_by_id.get(app.id)
+        if row is not None:
+            row.end_check()
+        if result.error is not None:
             self._check_errors += 1
-        if self._pending_checks:
-            return
+            self._report_check_error(app, result.error)
+
+    def _report_check_error(self, app: ManagedApp, error: Exception) -> None:
+        if isinstance(error, RateLimitError):
+            # Same for every app and the user has to act: shown once per check.
+            self._show_row_error(_("GitHub Rate Limit Reached"), str(error))
+        elif isinstance(error, TokenRejectedError):
+            self._show_row_error(_("Access Token Rejected"), str(error))
+        else:
+            self.toast(_("{app}: {error}").format(app=app.name, error=error))
+
+    def _on_check_failed(self, error: Exception) -> None:
+        # Not a per-app failure (those are results): unexpected, but never leave rows "checking".
+        for row in self.rows:
+            if row.state_stack.get_visible_child_name() == "checking":
+                row.end_check()
+        self._checking = False
+        self._sync_actions()
+        show_error(self, _("Could Not Check for Updates"), error)
+
+    def _on_check_finished(self) -> None:
+        self._checking = False
         self._sync_actions()
         if self._check_errors:
-            return  # each failing row already showed its own toast or alert
+            return  # each failing app already showed its own toast or alert
         updates = sum(1 for r in self.rows if r.has_update)
         if updates:
             self.toast(ngettext("{n} update available", "{n} updates available", updates).format(n=updates))
@@ -239,7 +269,7 @@ class TarseerWindow(Adw.ApplicationWindow):
     def update_all(self) -> None:
         """Update every app with an available update, one at a time, so downloads
         don't compete and a failure doesn't stop the others."""
-        if self._update_queue is not None or self._pending_checks:
+        if self._update_queue is not None or self._checking:
             return
         queue = [r for r in self.rows if r.has_update and not r.busy]
         if not queue:

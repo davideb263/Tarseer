@@ -6,6 +6,8 @@ import os
 import re
 import tempfile
 import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable
 
@@ -13,7 +15,10 @@ from . import config, desktop, github, installer
 from .assets import match_asset, validate_pattern
 from .desktop import DesktopConflictError
 from .installer import InstallError
-from .models import ManagedApp, Paths, Release, is_valid_id
+from .models import CheckResult, ManagedApp, Paths, Release, is_valid_id
+
+# Parallel release lookups in check_updates.
+CHECK_WORKERS = 4
 
 
 def slugify(name: str) -> str:
@@ -28,6 +33,8 @@ class AppManager:
         self._apps: dict[str, ManagedApp] = {
             a.id: a for a in config.load_apps(self.paths.config_file)
         }
+        # Latest check result per app id (this session only).
+        self._checks: dict[str, CheckResult] = {}
         # Messages for the UI about menu entries that could not be set up.
         self.startup_warnings: list[str] = self._sync_launchers()
 
@@ -60,10 +67,70 @@ class AppManager:
     def update_available(app: ManagedApp, release: Release) -> bool:
         return app.installed_tag != release.tag
 
+    def last_check(self, app_id: str) -> CheckResult | None:
+        """The latest check result for the app, if it was checked this session."""
+        with self._lock:
+            return self._checks.get(app_id)
+
+    def record_release(self, app_id: str, release: Release) -> None:
+        """Store a release fetched outside check_updates (install, repository change)."""
+        with self._lock:
+            self._checks[app_id] = CheckResult(release=release, checked_at=time.time())
+
+    @property
+    def updates(self) -> list[ManagedApp]:
+        """Apps whose last check found a release other than the installed one."""
+        with self._lock:
+            checks = dict(self._checks)
+        return [a for a in self.apps
+                if (c := checks.get(a.id)) and c.release and self.update_available(a, c.release)]
+
     # ── Network ──────────────────────────────────────────────────────────────
     @staticmethod
     def fetch_latest(repo: str) -> Release:
         return github.get_latest_release(repo)
+
+    def check_updates(
+        self,
+        apps: list[ManagedApp] | None = None,
+        on_result: Callable[[ManagedApp, CheckResult], None] | None = None,
+        workers: int = CHECK_WORKERS,
+    ) -> dict[str, CheckResult]:
+        """Look up the latest release of `apps` (default: all), a few at a time.
+
+        Each result is cached (see last_check) and passed to `on_result` from a
+        worker thread as soon as it is known. A rate limit or rejected token is
+        the same for every app: once one is hit, the apps not yet looked up get
+        that error without sending a request.
+        """
+        apps = self.apps if apps is None else list(apps)
+        fatal: list[Exception] = []  # the error every remaining app gets
+        fatal_lock = threading.Lock()
+
+        def check(app: ManagedApp) -> CheckResult:
+            with fatal_lock:
+                error = fatal[0] if fatal else None
+            if error is None:
+                try:
+                    result = CheckResult(release=self.fetch_latest(app.repo), checked_at=time.time())
+                except Exception as e:  # noqa: BLE001 - reported per app
+                    if isinstance(e, (github.RateLimitError, github.TokenRejectedError)):
+                        with fatal_lock:
+                            fatal.append(e)
+                    result = CheckResult(error=e, checked_at=time.time())
+            else:
+                result = CheckResult(error=error, checked_at=time.time())
+            with self._lock:
+                if app.id in self._apps:  # not removed meanwhile
+                    self._checks[app.id] = result
+            if on_result is not None:
+                on_result(app, result)
+            return result
+
+        if not apps:
+            return {}
+        with ThreadPoolExecutor(max_workers=max(1, min(workers, len(apps)))) as pool:
+            return dict(zip((a.id for a in apps), pool.map(check, apps)))
 
     @staticmethod
     def rate_limit(token: str | None = None) -> github.RateLimit:
@@ -161,6 +228,7 @@ class AppManager:
         desktop.remove_desktop_entry(self.paths.applications_dir, app)
         with self._lock:
             self._apps.pop(app.id, None)
+            self._checks.pop(app.id, None)
             self._save()
 
     def set_launcher(self, app: ManagedApp, executable: str | None, icon: str | None) -> None:

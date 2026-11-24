@@ -5,8 +5,37 @@ Ideas and known issues for after v1. Keep this file current: move items to
 found while working.
 
 ## Next up
-Planned for v0.3: background checks + notifications (needs the token);
-then translations + Flathub as a "v1.0 readiness" release.
+v0.3 "Updates come to you": background checks + notifications, plus the
+`riscv64gc` and "Reinstall now" items. Then translations + Flathub as a
+"v1.0 readiness" release.
+
+v0.3 plan (agreed 2026-11-24):
+1. [x] **Check logic in core.** `AppManager.check_updates()` returns a release or
+       error per app (4 lookups at a time), stops early on rate limit / rejected
+       token, and caches the results; rows and the window read from the cache.
+2. [ ] **Use the rate limit carefully.** ETag + `If-None-Match` per repo (a 304 doesn't
+       count against the limit), cached in a JSON next to `apps.json`; background runs read
+       `/rate_limit` first and skip the run if quota is low; keyring token if readable,
+       otherwise anonymous.
+3. [ ] **Background service.** `tarseer --background`: no window, first check a few
+       minutes after login. Frequency setting: "At login only" (check, notify, exit)
+       or every 6 h (default) / 12 h / 24 h (resident: `hold()` + timer; the window
+       opens in the same process with the cached results). Autostart through
+       the Background portal (libportal `Xdp`, in the GNOME 51 runtime) and
+       `set_background_status`. Ctrl+Q quits completely.
+4. [ ] **Notifications.** One `Gio.Notification` per run listing the apps; clicking
+       it only opens the window (no action buttons). Notify only about tags not
+       notified before; withdraw it once updates are installed.
+5. [ ] **Preferences "Updates" group.** Switch "Check for updates in the background"
+       (opt-in, default off), frequency dropdown, "Last checked". gschema:
+       `background-checks`, `check-frequency`, `last-check`, `notified-tags`.
+       A portal refusal goes in an alert and turns the switch back off.
+6. [ ] **Dev/test.** `TARSEER_CHECK_INTERVAL=<s>` override and `--check-now`;
+       screenshot of the Preferences group; manual test of the portal prompt,
+       autostart after re-login, notification click, locked keyring.
+7. [ ] **Small extras.** `riscv64gc` arch alias; "Reinstall now" after changing
+       the release file.
+8. [ ] **Release 0.3.0.** Version bump, metainfo notes, README, merge to `main`, tag.
 
 ## Features
 - [ ] **Background update checks + notifications.** Check periodically (or at

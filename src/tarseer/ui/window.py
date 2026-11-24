@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+
 from gi.repository import Adw, Gio, Gtk
 
 from ..core.config import ConfigError
@@ -8,6 +10,8 @@ from ..core.models import ManagedApp, Release
 from .add_dialog import AddDialog
 from .alerts import show_error, show_launcher_warnings
 from .details_dialog import DetailsDialog
+from .preferences_dialog import PreferencesDialog
+from . import token_store
 from .app_row import AppRow
 
 APP_ID = "io.github.davideb263.Tarseer"
@@ -49,6 +53,11 @@ class TarseerWindow(Adw.ApplicationWindow):
         self.stop_updates_action.connect("activate", lambda *_: self.stop_updates())
         self.add_action(self.stop_updates_action)
 
+        self.preferences_action = Gio.SimpleAction.new("preferences", None)
+        self.preferences_action.connect("activate", lambda *_: PreferencesDialog(self.manager).present(self))
+        self.add_action(self.preferences_action)
+        self.get_application().set_accels_for_action("win.preferences", ["<primary>comma"])
+
         self.rows: list[AppRow] = []
         self.rows_by_id: dict[str, AppRow] = {}
         self._pending_checks = 0
@@ -70,11 +79,20 @@ class TarseerWindow(Adw.ApplicationWindow):
             self.check_action.set_enabled(False)
             self.add_app_action.set_enabled(False)
             self.update_all_action.set_enabled(False)
+            self.preferences_action.set_enabled(False)
             return
+        token_store.load(self._on_token_loaded)
         self.populate()
         if self.manager.startup_warnings:
             # Wait until the window is on screen so the alert has a parent to attach to.
             self.connect("map", lambda *_: show_launcher_warnings(self, self.manager.startup_warnings))
+
+    def _on_token_loaded(self, token: str | None, error: Exception | None) -> None:
+        if error is not None:
+            # No keyring (or the portal refused): work without a token.
+            print(f"Tarseer: could not read the GitHub token from the keyring: {error}", file=sys.stderr)
+            return
+        self.manager.set_token(token)
 
     def populate(self) -> None:
         """Sync the list with the manager, keeping existing rows (and their check state)."""

@@ -43,6 +43,15 @@ releases of your tarballs as soon as they come out.
   the release file, matched by a pattern Tarseer learned from the file you
   first picked (e.g. `calibre-7.2.0-x86_64.txz` matches next month's
   `calibre-7.3.0-x86_64.txz`).
+  *Update All* updates every app one after another, and a download can be
+  cancelled at any time.
+- **Change the release file.** If a project renames its files, moves to a new
+  repository, or you want another build (e.g. musl instead of glibc), pick the
+  file again from the app's details.
+- **Optional GitHub token.** Without one, GitHub allows 60 API requests per
+  hour (one per app for each check). A fine-grained token with no extra
+  permissions, added in *Preferences*, raises this to 5,000. It is kept in your
+  keyring and only sent to the GitHub API, never with downloads.
 - **Rollback.** The previous version is kept as a backup. *Restore* swaps
   back to it, and you can swap again afterwards.
 - **Safe on disk.** Archives are extracted to a staging folder and moved

@@ -50,6 +50,14 @@ parser.add_argument("--slow-download", action="store_true",
                     help="throttle downloads (~250 KB/s) so progress and cancelling can be seen")
 parser.add_argument("--cancel-after", type=float, metavar="SECONDS",
                     help="cancel the --update (Stop for 'all') or the --add install after SECONDS")
+parser.add_argument("--preferences", metavar="PATH",
+                    help="finally open Preferences and screenshot it to PATH")
+parser.add_argument("--pref-token", metavar="TOKEN",
+                    help="with --preferences: apply TOKEN, then screenshot to PATH with -applied")
+parser.add_argument("--fake-token-ok", action="store_true",
+                    help="pretend GitHub accepts any token (the API status shows 5000/hour)")
+parser.add_argument("--pref-remove", action="store_true",
+                    help="with --pref-token: then remove the token (screenshot -removed)")
 parser.add_argument("--size", default="720x560")
 parser.add_argument("--timeout", type=float, default=300)
 args = parser.parse_args()
@@ -75,6 +83,16 @@ if args.slow_download:
 
     _real_urlopen = github._urlopen
     github._urlopen = lambda *a, **kw: _SlowResponse(_real_urlopen(*a, **kw))
+
+if args.fake_token_ok:
+    from tarseer.core import github as _gh
+    _real_limit = _gh.get_rate_limit
+
+    def _fake_limit(token=None, timeout=15):
+        if token or _gh.has_token():
+            return _gh.RateLimit(5000, 4987, time.time() + 2400)
+        return _real_limit(None, timeout)
+    _gh.get_rate_limit = _fake_limit
 
 app = TarseerApplication("dev")
 app.set_flags(app.get_flags() | Gio.ApplicationFlags.NON_UNIQUE)
@@ -219,6 +237,33 @@ def drive_details(win, then):
     GLib.timeout_add(1200, lambda: act() and False)
 
 
+def drive_preferences(win, then):
+    win.activate_action("win.preferences", None)
+    dialog = win.get_visible_dialog()
+
+    def idle():
+        return not dialog.status_spinner.get_visible()
+
+    def shoot():
+        screenshot(win, args.preferences)
+        if not args.pref_token:
+            return then()
+        dialog.token_row.set_text(args.pref_token)
+        dialog.on_token_apply()
+        GLib.timeout_add(500, lambda: wait_for(idle, lambda: GLib.timeout_add(
+            1000, lambda: (screenshot(win, args.preferences.replace(".png", "-applied.png")), remove())[-1]
+            and False)) and False)
+
+    def remove():
+        if not args.pref_remove:
+            return then()
+        dialog.on_remove_token()
+        GLib.timeout_add(1500, lambda: wait_for(idle, lambda: (
+            screenshot(win, args.preferences.replace(".png", "-removed.png")), then())) and False)
+
+    wait_for(idle, lambda: GLib.timeout_add(500, lambda: shoot() and False))
+
+
 def wait_idle(win, then):
     def poll():
         if time.monotonic() - started > args.timeout:
@@ -243,6 +288,8 @@ def on_activate(application):
     def finish():
         if args.details:
             drive_details(win, final_shot)
+        elif args.preferences:
+            drive_preferences(win, final_shot)
         else:
             final_shot()
 

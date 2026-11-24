@@ -92,6 +92,49 @@ class GitHubTest(unittest.TestCase):
             github.download("https://d/x", Path(tmp) / "x", progress=progress, cancel=cancel)
         self.assertEqual(seen, [github.CHUNK])
 
+    def test_token_only_sent_to_api(self):
+        requests = []
+
+        def fake_urlopen(req, timeout=None):
+            requests.append(req)
+            resp = io.BytesIO(json.dumps({"tag_name": "v1", "assets": []}).encode())
+            resp.headers = {}
+            return resp
+
+        self.addCleanup(github.set_token, None)
+        github.set_token("  ghp_secret \n")
+        self.assertTrue(github.has_token())
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(github, "_urlopen", fake_urlopen):
+            github.get_latest_release("o/r")
+            github.download("https://github.com/o/r/releases/download/v1/x.tar.gz", Path(tmp) / "x")
+        api, dl = requests
+        self.assertEqual(api.get_header("Authorization"), "Bearer ghp_secret")
+        self.assertIsNone(dl.get_header("Authorization"))
+        github.set_token("   ")
+        self.assertFalse(github.has_token())
+
+    def test_rate_limit(self):
+        body = json.dumps({"resources": {"core": {"limit": 5000, "remaining": 4999, "reset": 1700000000}}})
+        seen = []
+
+        def fake_urlopen(req, timeout=None):
+            seen.append(req.get_header("Authorization"))
+            return io.BytesIO(body.encode())
+
+        with mock.patch.object(github, "_urlopen", fake_urlopen):
+            limit = github.get_rate_limit("ghp_candidate")
+        self.assertEqual(limit, github.RateLimit(5000, 4999, 1700000000.0))
+        self.assertEqual(seen, ["Bearer ghp_candidate"])
+
+    def test_rejected_token_and_rate_limit_hint(self):
+        err = http_error(401)
+        self.addCleanup(err.close)
+        with mock.patch.object(github, "_urlopen", side_effect=err), \
+                self.assertRaises(github.TokenRejectedError):
+            github.get_rate_limit("bad")
+        self.assertIn("Preferences", str(github.RateLimitError(None)))
+        self.assertNotIn("Preferences", str(github.RateLimitError(None, with_token=True)))
+
     def test_errors_translated(self):
         cases = [
             (http_error(404), github.NotFoundError),

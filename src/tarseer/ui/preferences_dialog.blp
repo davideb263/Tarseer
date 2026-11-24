@@ -1,0 +1,58 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $TarseerPreferencesDialog: Adw.PreferencesDialog {
+  title: _("Preferences");
+  content-height: 480;
+
+  Adw.PreferencesPage {
+    Adw.PreferencesGroup {
+      title: _("GitHub Access Token");
+      description: _("Without a token, GitHub allows 60 requests per hour and every update check uses one per app. A token raises the limit to 5,000. It only needs to read public repositories: a fine-grained token with no extra permissions is enough.");
+
+      Adw.PasswordEntryRow token_row {
+        title: _("Access Token");
+        show-apply-button: true;
+        apply => $on_token_apply();
+      }
+
+      Adw.ActionRow status_row {
+        title: _("Requests Left This Hour");
+        use-markup: false;
+
+        styles [
+          "property",
+        ]
+
+        [suffix]
+        Adw.Spinner status_spinner {
+          visible: false;
+        }
+      }
+
+      Adw.ActionRow {
+        title: _("_Create a Token on GitHub");
+        use-underline: true;
+        subtitle: _("Opens github.com in your browser");
+        activatable: true;
+        activated => $on_create_token();
+
+        [suffix]
+        Image {
+          icon-name: "adw-external-link-symbolic";
+        }
+      }
+
+      Adw.ButtonRow remove_row {
+        title: _("_Remove Token");
+        use-underline: true;
+        visible: false;
+        activated => $on_remove_token();
+
+        styles [
+          "destructive-action",
+        ]
+      }
+    }
+  }
+}

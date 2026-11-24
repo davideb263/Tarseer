@@ -63,6 +63,20 @@ class AppManager:
     def fetch_latest(repo: str) -> Release:
         return github.get_latest_release(repo)
 
+    @staticmethod
+    def rate_limit(token: str | None = None) -> github.RateLimit:
+        """API quota for `token`, or for the token in use. Validates a token too."""
+        return github.get_rate_limit(token)
+
+    @staticmethod
+    def set_token(token: str | None) -> None:
+        """Use `token` (None: none) for GitHub API requests from now on."""
+        github.set_token(token)
+
+    @staticmethod
+    def has_token() -> bool:
+        return github.has_token()
+
     # ── Mutations ────────────────────────────────────────────────────────────
     def install(
         self,

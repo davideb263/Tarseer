@@ -52,7 +52,7 @@ then translations + Flathub as a "v1.0 readiness" release.
 
 ## Done
 - [x] Re-pick the release file from the details dialog ("Change…"), and pick it
-      again when a new repository names its files differently (COMMIT).
+      again when a new repository names its files differently (`daff575`).
 - [x] Homepage, bug tracker and source URLs in the metainfo and About dialog (`d83cfa4`).
 - [x] Real app icon in `data/icons/` (`a401572` first draft; vector SVG in `4df7f2e`).
 - [x] v1: scaffold, core logic, main window, Add App dialog, details dialog

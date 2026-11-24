@@ -13,12 +13,15 @@ v0.3 plan (agreed 2026-11-24):
 1. [x] **Check logic in core.** `AppManager.check_updates()` returns a release or
        error per app (4 lookups at a time), stops early on rate limit / rejected
        token, and caches the results; rows and the window read from the cache (`850bcb0`).
-2. [ ] **Use the rate limit carefully.** ETag + `If-None-Match` per repo (a 304 doesn't
-       count against the limit), cached in a JSON next to `apps.json`; background runs read
-       `/rate_limit` first and skip the run if quota is low; keyring token if readable,
-       otherwise anonymous.
+2. [x] **Use the rate limit carefully.** ETag + `If-None-Match` per repo, last
+       replies cached in `$XDG_CACHE_HOME/tarseer/releases.json` (pruned to managed
+       repos at startup); `AppManager.has_quota_for()` (every app counted as a
+       request + 10 spare) for background runs to call first. Without a token a 304
+       still costs a request (verified live); with one GitHub says it's free:
+       confirm with a real token (`X-RateLimit-Remaining` unchanged on a re-check).
 3. [ ] **Background service.** `tarseer --background`: no window, first check a few
-       minutes after login. Frequency setting: "At login only" (check, notify, exit)
+       minutes after login. Skip the run if `has_quota_for()` is False; keyring
+       token if readable, otherwise anonymous. Frequency setting: "At login only" (check, notify, exit)
        or every 6 h (default) / 12 h / 24 h (resident: `hold()` + timer; the window
        opens in the same process with the cached results). Autostart through
        the Background portal (libportal `Xdp`, in the GNOME 51 runtime) and

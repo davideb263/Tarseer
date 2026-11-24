@@ -10,6 +10,7 @@ from tarseer.core.assets import pattern_from_name
 from tarseer.core.installer import InstallError
 from tarseer.core.manager import AppManager, slugify
 from tarseer.core.models import Asset, ManagedApp, Paths, Release
+from tarseer.core.release_cache import ReleaseCache
 
 from .helpers import ELF, PNG_256, make_tarball
 
@@ -341,12 +342,14 @@ class CheckUpdatesTest(unittest.TestCase):
         self.manager = AppManager(self.paths)
         self.replies = {}  # repo -> Release or Exception
         self.calls = []
+        self.cached_args = []
         patcher = mock.patch.object(github, "get_latest_release", side_effect=self.fake_latest)
         patcher.start()
         self.addCleanup(patcher.stop)
 
-    def fake_latest(self, repo):
+    def fake_latest(self, repo, cached=None):
         self.calls.append(repo)
+        self.cached_args.append(cached)
         reply = self.replies.get(repo, Release(tag="v1"))
         if isinstance(reply, Exception):
             raise reply
@@ -418,6 +421,79 @@ class CheckUpdatesTest(unittest.TestCase):
         # A check still running for a removed app doesn't bring its result back.
         self.manager.check_updates([app])
         self.assertIsNone(self.manager.last_check("app0"))
+
+    def test_etag_replies_are_cached_and_sent_back(self):
+        first = Release(tag="v2", etag='W/"1"')
+        self.replies["owner/app0"] = first
+        app = self.manager.get("app0")
+        self.manager.check_updates([app])
+        self.assertIsNone(self.cached_args[-1])
+        # A new manager (next launch) reads the cache from disk.
+        manager = AppManager(self.paths)
+        manager.check_updates([manager.get("app0")])
+        sent = self.cached_args[-1]
+        self.assertEqual((sent.tag, sent.etag), ("v2", 'W/"1"'))
+        # Replies without an ETag aren't kept.
+        self.replies["owner/app1"] = Release(tag="v2")
+        manager.check_updates([manager.get("app1")])
+        AppManager(self.paths).check_updates([manager.get("app1")])
+        self.assertIsNone(self.cached_args[-1])
+
+    def test_cache_forgets_repos_no_app_uses(self):
+        self.manager.fetch_latest("someone/else")  # e.g. looked up in Add App
+        self.replies["someone/else"] = Release(tag="v1", etag='"x"')
+        self.manager.fetch_latest("someone/else")
+        self.assertTrue(self.paths.cache_file.exists())
+        AppManager(self.paths)  # startup prunes it
+        self.assertNotIn("someone/else", self.paths.cache_file.read_text())
+
+    def test_quota(self):
+        def limit(remaining):
+            return mock.patch.object(github, "get_rate_limit",
+                                     return_value=github.RateLimit(60, remaining, 0))
+        apps = self.manager.apps[:2]
+        with limit(14):
+            self.assertTrue(self.manager.has_quota_for())  # 4 apps + 10
+        with limit(13):
+            self.assertFalse(self.manager.has_quota_for())
+            self.assertTrue(self.manager.has_quota_for(apps))
+        with limit(11):
+            self.assertFalse(self.manager.has_quota_for(apps))
+
+
+class ReleaseCacheTest(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.path = Path(self._tmp.name) / "cache" / "releases.json"
+
+    def test_roundtrip(self):
+        cache = ReleaseCache(self.path)
+        release = Release(tag="v1", name="One", html_url="https://h", etag='W/"e"',
+                          assets=[Asset(name="a.tar.gz", url="https://d/a", size=3, digest="sha256:00")])
+        cache.put("o/r", release)
+        cache.put("o/no-etag", Release(tag="v1"))
+        loaded = ReleaseCache(self.path)
+        self.assertEqual(loaded.get("o/r"), release)
+        self.assertIsNone(loaded.get("o/no-etag"))
+        loaded.keep_only(["other/repo"])
+        self.assertIsNone(ReleaseCache(self.path).get("o/r"))
+
+    def test_bad_file_starts_empty(self):
+        self.path.parent.mkdir(parents=True)
+        for text in ("not json", "[]", '{"version": 99, "releases": {}}',
+                     '{"version": 1, "releases": {"o/r": {"tag": "v1"}}}',
+                     '{"version": 1, "releases": {"o/r": {"tag": "v1", "etag": "e", "bogus": 1}}}'):
+            with self.subTest(text):
+                self.path.write_text(text)
+                self.assertIsNone(ReleaseCache(self.path).get("o/r"))
+
+    def test_unwritable_cache_is_not_an_error(self):
+        self.path.parent.parent.mkdir(exist_ok=True)
+        self.path.parent.write_text("a file where the folder should be")
+        cache = ReleaseCache(self.path)
+        cache.put("o/r", Release(tag="v1", etag='"e"'))
+        self.assertEqual(cache.get("o/r").tag, "v1")  # still used in memory
 
 
 if __name__ == "__main__":

@@ -15,10 +15,14 @@ from . import config, desktop, github, installer
 from .assets import match_asset, validate_pattern
 from .desktop import DesktopConflictError
 from .installer import InstallError
+from .release_cache import ReleaseCache
 from .models import CheckResult, ManagedApp, Paths, Release, is_valid_id
 
 # Parallel release lookups in check_updates.
 CHECK_WORKERS = 4
+# Requests left untouched by a background check, so the user can still add an
+# app or check by hand right after it.
+QUOTA_MARGIN = 10
 
 
 def slugify(name: str) -> str:
@@ -35,6 +39,8 @@ class AppManager:
         }
         # Latest check result per app id (this session only).
         self._checks: dict[str, CheckResult] = {}
+        self._release_cache = ReleaseCache(self.paths.cache_file)
+        self._release_cache.keep_only(a.repo for a in self._apps.values())
         # Messages for the UI about menu entries that could not be set up.
         self.startup_warnings: list[str] = self._sync_launchers()
 
@@ -86,9 +92,20 @@ class AppManager:
                 if (c := checks.get(a.id)) and c.release and self.update_available(a, c.release)]
 
     # ── Network ──────────────────────────────────────────────────────────────
-    @staticmethod
-    def fetch_latest(repo: str) -> Release:
-        return github.get_latest_release(repo)
+    def fetch_latest(self, repo: str) -> Release:
+        """Latest release of `repo`. Asks GitHub "changed since?" when an earlier
+        reply is cached: with a token that costs no rate limit if it didn't."""
+        release = github.get_latest_release(repo, cached=self._release_cache.get(repo))
+        self._release_cache.put(repo, release)
+        return release
+
+    def has_quota_for(self, apps: list[ManagedApp] | None = None) -> bool:
+        """Whether checking `apps` (default: all) leaves QUOTA_MARGIN requests of
+        the GitHub API limit. Counts every app as a request: without a token even
+        a "not modified" reply uses one.
+        Raises like rate_limit()."""
+        count = len(self._apps) if apps is None else len(apps)
+        return github.get_rate_limit().remaining >= count + QUOTA_MARGIN
 
     def check_updates(
         self,

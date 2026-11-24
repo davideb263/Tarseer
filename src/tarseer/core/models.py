@@ -15,23 +15,33 @@ class Paths:
     install_root: Path
     applications_dir: Path
     config_file: Path
+    # Replies from GitHub kept to make cheap conditional requests; losing it
+    # only costs requests. Default: next to config_file.
+    cache_file: Path | None = None
+
+    def __post_init__(self):
+        if self.cache_file is None:
+            self.cache_file = self.config_file.parent / "releases-cache.json"
 
     @classmethod
     def default(cls) -> "Paths":
         # Development: keep everything inside one throwaway folder.
         if dev_root := os.environ.get("TARSEER_DEV_ROOT"):
             root = Path(dev_root)
-            return cls(root / "opt", root / "applications", root / "config" / "apps.json")
+            return cls(root / "opt", root / "applications", root / "config" / "apps.json",
+                       root / "cache" / "releases.json")
         home = Path.home()
         # Inside Flatpak, XDG_CONFIG_HOME points to ~/.var/app/<id>/config,
         # which is exactly where our own config should live.
         config_home = Path(os.environ.get("XDG_CONFIG_HOME") or home / ".config")
+        cache_home = Path(os.environ.get("XDG_CACHE_HOME") or home / ".cache")
         return cls(
             install_root=home / ".local" / "opt",
             # Deliberately NOT $XDG_DATA_HOME: Flatpak redirects that into the
             # sandbox, but menu entries must land in the real ~/.local/share.
             applications_dir=home / ".local" / "share" / "applications",
             config_file=config_home / "tarseer" / "apps.json",
+            cache_file=cache_home / "tarseer" / "releases.json",
         )
 
 
@@ -83,6 +93,9 @@ class Release:
     name: str = ""
     html_url: str = ""
     assets: list[Asset] = field(default_factory=list)
+    # GitHub's ETag for this response, for a conditional request next time
+    # (see github.get_latest_release).
+    etag: str | None = None
 
 
 @dataclass

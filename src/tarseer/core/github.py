@@ -156,14 +156,28 @@ def _translate_http_error(e: urllib.error.HTTPError, what: str, token: str | Non
     return GitHubError(f"GitHub returned HTTP {e.code} for {what}")
 
 
-def get_latest_release(repo: str, timeout: float = 15) -> Release:
-    """Latest stable release (GitHub's /latest excludes drafts and pre-releases)."""
+def get_latest_release(repo: str, timeout: float = 15, cached: Release | None = None) -> Release:
+    """Latest stable release (GitHub's /latest excludes drafts and pre-releases).
+
+    With a `cached` reply for the same repo that has an ETag, the request is
+    conditional: if nothing changed GitHub answers 304 and `cached` itself is
+    returned. With a token, a 304 doesn't count against the rate limit (GitHub's
+    docs); without one it does (checked 2026-11-24), but the reply is tiny.
+    """
     url = f"{API}/repos/{repo}/releases/latest"
     token = _token
+    req = _request(url, "application/vnd.github+json", token)
+    if cached is not None and cached.etag:
+        req.add_header("If-None-Match", cached.etag)
     try:
-        with _urlopen(_request(url, "application/vnd.github+json", token), timeout=timeout) as resp:
-            return release_from_json(json.load(resp))
+        with _urlopen(req, timeout=timeout) as resp:
+            release = release_from_json(json.load(resp))
+            release.etag = resp.headers.get("ETag") or None
+            return release
     except urllib.error.HTTPError as e:
+        if e.code == 304 and cached is not None:
+            e.close()  # the usual reply once cached: don't leave its connection to GC
+            return cached
         if e.code == 404:
             raise NotFoundError(f"{repo} has no releases, or the repository does not exist") from e
         raise _translate_http_error(e, f"Latest release of {repo}", token) from e

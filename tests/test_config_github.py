@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest import mock
 
 from tarseer.core import config, github
-from tarseer.core.models import ManagedApp, Paths
+from tarseer.core.models import ManagedApp, Paths, Release
 
 
 class PathsTest(unittest.TestCase):
@@ -20,14 +20,21 @@ class PathsTest(unittest.TestCase):
             paths = Paths.default()
         self.assertEqual(paths.install_root, Path("/dev-root/opt"))
         self.assertEqual(paths.config_file, Path("/dev-root/config/apps.json"))
+        self.assertEqual(paths.cache_file, Path("/dev-root/cache/releases.json"))
 
     def test_real_paths_ignore_xdg_data_home(self):
-        env = {"XDG_DATA_HOME": "/sandbox/data", "XDG_CONFIG_HOME": "/sandbox/config"}
+        env = {"XDG_DATA_HOME": "/sandbox/data", "XDG_CONFIG_HOME": "/sandbox/config",
+               "XDG_CACHE_HOME": "/sandbox/cache"}
         with mock.patch.dict("os.environ", env), mock.patch.dict("os.environ", {}, clear=False) as e:
             e.pop("TARSEER_DEV_ROOT", None)
             paths = Paths.default()
         self.assertEqual(paths.applications_dir, Path.home() / ".local/share/applications")
         self.assertEqual(paths.config_file, Path("/sandbox/config/tarseer/apps.json"))
+        self.assertEqual(paths.cache_file, Path("/sandbox/cache/tarseer/releases.json"))
+
+    def test_cache_file_defaults_next_to_config(self):
+        paths = Paths(Path("/o"), Path("/a"), Path("/c/apps.json"))
+        self.assertEqual(paths.cache_file, Path("/c/releases-cache.json"))
 
 
 class ConfigTest(unittest.TestCase):
@@ -83,10 +90,39 @@ class GitHubTest(unittest.TestCase):
             "tag_name": "v8.1.0", "name": "8.1", "html_url": "https://h",
             "assets": [{"name": "c.txz", "browser_download_url": "https://d/c.txz", "size": 3}],
         }).encode()
-        with mock.patch.object(github, "_urlopen", return_value=io.BytesIO(body)):
+        resp = io.BytesIO(body)
+        resp.headers = {"ETag": 'W/"abc"'}
+        with mock.patch.object(github, "_urlopen", return_value=resp) as urlopen:
             rel = github.get_latest_release("o/r")
         self.assertEqual(rel.tag, "v8.1.0")
         self.assertEqual(rel.assets[0].url, "https://d/c.txz")
+        self.assertEqual(rel.etag, 'W/"abc"')
+        self.assertIsNone(urlopen.call_args.args[0].get_header("If-none-match"))
+
+    def test_latest_release_conditional(self):
+        cached = Release(tag="v1", etag='W/"abc"')
+        requests = []
+
+        def not_modified(req, timeout=None):
+            requests.append(req)
+            raise http_error(304)
+
+        with mock.patch.object(github, "_urlopen", not_modified):
+            self.assertIs(github.get_latest_release("o/r", cached=cached), cached)
+        self.assertEqual(requests[0].get_header("If-none-match"), 'W/"abc"')
+
+        # A cached reply without an ETag can't be revalidated: plain request.
+        resp = io.BytesIO(json.dumps({"tag_name": "v2", "assets": []}).encode())
+        resp.headers = {}
+        with mock.patch.object(github, "_urlopen", return_value=resp) as urlopen:
+            rel = github.get_latest_release("o/r", cached=Release(tag="v1"))
+        self.assertEqual((rel.tag, rel.etag), ("v2", None))
+        self.assertIsNone(urlopen.call_args.args[0].get_header("If-none-match"))
+
+        # A 304 without a cached reply (can't happen with GitHub) is an error.
+        with mock.patch.object(github, "_urlopen", side_effect=http_error(304)), \
+                self.assertRaises(github.GitHubError):
+            github.get_latest_release("o/r")
 
     def test_download_cancel(self):
         body = io.BytesIO(b"x" * (github.CHUNK * 3))

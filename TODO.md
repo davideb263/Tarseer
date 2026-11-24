@@ -46,7 +46,7 @@ then translations + Flathub as a "v1.0 readiness" release.
 ## Done
 - [x] Cancel a running download: ✕ next to a row's progress bar, Cancel on the
       Add App progress page, and Update All turns into Stop while it runs.
-      Extraction can't be cancelled, so the buttons hide once the download ends (COMMIT).
+      Extraction can't be cancelled, so the buttons hide once the download ends (`e76ea68`).
 - [x] "Update All" in the header bar (2+ updates): one app at a time, queued rows
       marked, failures collected into one alert at the end (`a047284`).
 - [x] Re-pick the release file from the details dialog ("Change…"), and pick it

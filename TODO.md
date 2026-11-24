@@ -18,7 +18,7 @@ v0.3 plan (agreed 2026-11-24):
        repos at startup); `AppManager.has_quota_for()` (every app counted as a
        request + 10 spare) for background runs to call first. Without a token a 304
        still costs a request (verified live); with one GitHub says it's free:
-       confirm with a real token (`X-RateLimit-Remaining` unchanged on a re-check).
+       confirm with a real token (`X-RateLimit-Remaining` unchanged on a re-check) (`d6654c6`).
 3. [ ] **Background service.** `tarseer --background`: no window, first check a few
        minutes after login. Skip the run if `has_quota_for()` is False; keyring
        token if readable, otherwise anonymous. Frequency setting: "At login only" (check, notify, exit)

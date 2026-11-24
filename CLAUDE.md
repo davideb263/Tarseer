@@ -24,6 +24,9 @@ Python + PyGObject, GTK4 + libadwaita 1.10, Blueprint UI files, Meson, Flatpak
   overrides the interval. A resident instance survives `timeout` on `flatpak run`:
   stop it with `flatpak kill io.github.davideb263.Tarseer` (and mind the 60/hour
   anonymous quota when testing short intervals).
+  A dev `flatpak run` while the user's real Tarseer is running hands off to it
+  (same app id) and silently does nothing: check `flatpak ps`, or run through a
+  script that sets `Gio.ApplicationFlags.NON_UNIQUE` (as `dev_screenshot.py` does).
 - Screenshots for checking UI changes: `tools/dev_screenshot.py` (usage in its
   docstring; supports `--check`, `--update <id>`, `--progress-shot`,
   `--add <repo> --add-shots <prefix>` to walk the Add App dialog, `--background-check`,

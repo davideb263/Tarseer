@@ -12,7 +12,7 @@ v0.3 "Updates come to you": background checks + notifications, plus the
 v0.3 plan (agreed 2026-11-24):
 1. [x] **Check logic in core.** `AppManager.check_updates()` returns a release or
        error per app (4 lookups at a time), stops early on rate limit / rejected
-       token, and caches the results; rows and the window read from the cache.
+       token, and caches the results; rows and the window read from the cache (`850bcb0`).
 2. [ ] **Use the rate limit carefully.** ETag + `If-None-Match` per repo (a 304 doesn't
        count against the limit), cached in a JSON next to `apps.json`; background runs read
        `/rate_limit` first and skip the run if quota is low; keyring token if readable,

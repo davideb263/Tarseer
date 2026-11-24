@@ -60,6 +60,47 @@ class TestSelection(unittest.TestCase):
         self.assertIsNone(score_asset("app-1.0-linux-x86-64.tar.gz", "i686"))
         self.assertIsNotNone(score_asset("protoc-1.0-linux-aarch_64.tar.gz", "aarch64"))
 
+    def test_rust_target_names(self):
+        # ripgrep 14's Linux tarballs.
+        release = assets(*(f"ripgrep-14.1.1-{t}.tar.gz" for t in (
+            "aarch64-unknown-linux-gnu", "armv7-unknown-linux-gnueabihf",
+            "armv7-unknown-linux-musleabihf", "i686-unknown-linux-gnu",
+            "powerpc64-unknown-linux-gnu", "riscv64gc-unknown-linux-gnu",
+            "s390x-unknown-linux-gnu", "x86_64-unknown-linux-musl",
+        )))
+        expected = {
+            "x86_64": ["x86_64-unknown-linux-musl"],
+            "aarch64": ["aarch64-unknown-linux-gnu"],
+            "riscv64": ["riscv64gc-unknown-linux-gnu"],
+            "ppc64": ["powerpc64-unknown-linux-gnu"],
+            "ppc64le": [],
+            "s390x": ["s390x-unknown-linux-gnu"],
+        }
+        for machine, targets in expected.items():
+            with self.subTest(machine):
+                names = [a.name for a in candidate_assets(release, machine)]
+                self.assertEqual(names, [f"ripgrep-14.1.1-{t}.tar.gz" for t in targets])
+        armv7 = [a.name for a in candidate_assets(release, "armv7l")]
+        self.assertEqual(len(armv7), 2)
+        self.assertTrue(all("armv7" in n for n in armv7))
+
+    def test_other_arch_aliases(self):
+        for name, machine in (
+            ("t-1.0-loongarch64-unknown-linux-gnu.tar.gz", "loongarch64"),
+            ("t-1.0-linux-loong64.tar.gz", "loongarch64"),
+            ("t-1.0-powerpc64le-unknown-linux-gnu.tar.gz", "ppc64le"),
+            ("t-1.0-linux-mips64el.tar.gz", "mips64"),
+            ("t-1.0-riscv64a23-linux.tar.gz", "riscv64"),
+        ):
+            with self.subTest(name):
+                self.assertIsNotNone(score_asset(name, machine))
+                self.assertIsNone(score_asset(name, "x86_64"))
+        # Big- and little-endian POWER are different machines.
+        self.assertIsNone(score_asset("t-1.0-powerpc64-unknown-linux-gnu.tar.gz", "ppc64le"))
+        # armv6 builds run on armv7, but armv7 isn't offered to an aarch64 machine.
+        self.assertIsNotNone(score_asset("t-1.0-linux-armv6.tar.gz", "armv7l"))
+        self.assertIsNone(score_asset("t-1.0-linux-armv7.tar.gz", "aarch64"))
+
     def test_repo_bonus_with_underscore_repo_name(self):
         release = assets("other-1.0-x86_64.tar.gz", "my_tool-1.0-x86_64.tar.gz")
         self.assertEqual(candidate_assets(release, "x86_64", repo="me/my_tool")[0].name, "my_tool-1.0-x86_64.tar.gz")

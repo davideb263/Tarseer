@@ -54,13 +54,15 @@ v0.3 plan (agreed 2026-11-24):
        background apps with a periodic frequency, and "At login only" exits after its check (`6c8002b`).
 6. [ ] **Dev/test.** Done: `TARSEER_CHECK_INTERVAL=<s>`, `--check-now`, dev settings
        keyfile, `dev_screenshot.py --background-check` and `--pref-background`, real
-       portal on/off, Quick Settings entry, login-only run (manual, 2026-11-24).
-       Left (manual, when a real update shows up): a real notification and clicking
-       it (opens Tarseer and checks; also after a login-only run exited, through
-       D-Bus activation); "no notification while the window has focus"; locked
-       keyring / auto-login (the check goes on without the token after 30 s).
-7. [ ] **Small extras.** `riscv64gc` arch alias; "Reinstall now" after changing
-       the release file.
+       portal on/off, Quick Settings entry, login-only run, a real notification and
+       clicking it both with Tarseer running and after it exited (D-Bus activation)
+       (manual, 2026-11-24, with a fake-GitHub dev sandbox). Left: locked keyring /
+       auto-login (the check goes on without the token after 30 s).
+7. [ ] **Small extras.**
+   - [x] Arch names: `riscv64gc` (any `riscv64*`) and Rust-style `powerpc64`,
+         `powerpc64le`, `loongarch64`/`loong64`, MIPS are known, so they're no longer
+         offered on other machines (ripgrep offered riscv64gc and powerpc64 on x86_64).
+   - [ ] "Reinstall now" after changing the release file.
 8. [ ] **Release 0.3.0.** Version bump, metainfo notes, README, merge to `main`, tag.
 
 ## Features
@@ -91,8 +93,6 @@ v0.3 plan (agreed 2026-11-24):
       pile up), so long ones get cut off; the full text is only in the row's ⚠
       tooltip. Consider an "error details" action. (Rate limit and rejected
       token errors are already alerts, shown once per check.)
-- [ ] `riscv64gc` (ripgrep's name for riscv64) isn't recognized as a foreign
-      arch, so it's offered on x86_64. Match arch tokens by prefix or add aliases.
 
 ## Done
 - [x] v0.2.1: review and security review fixes; version bump and metainfo

@@ -19,11 +19,17 @@ TARBALL_SUFFIXES = (
 ARCH_TOKENS = {
     "x86_64": {"x86_64", "amd64", "x64", "linux64", "64bit"},
     "aarch64": {"aarch64", "arm64", "armv8"},
-    "armv7l": {"armv7", "armv7l", "armhf", "arm"},
+    # armv6 builds run on armv7 too.
+    "armv7l": {"armv7", "armv7l", "armv7hf", "armhf", "arm", "armv6", "armv6l", "armel"},
     "i686": {"i386", "i686", "x86", "386", "32bit", "linux32"},
-    "ppc64le": {"ppc64le", "ppc64el"},
+    # Rust targets spell these out: powerpc64le-unknown-linux-gnu, powerpc64-...
+    "ppc64le": {"ppc64le", "ppc64el", "powerpc64le"},
+    "ppc64": {"ppc64", "powerpc64"},
     "s390x": {"s390x"},
-    "riscv64": {"riscv64"},
+    "riscv64": {"riscv64"},  # also riscv64gc etc., see _COMPOUND_ARCH
+    "loongarch64": {"loongarch64", "loong64"},
+    "mips64": {"mips64", "mips64el"},
+    "mips": {"mips", "mipsel"},
 }
 FOREIGN_OS_TOKENS = {
     "windows", "win", "win32", "win64", "macos", "mac", "osx", "darwin", "apple",
@@ -41,8 +47,13 @@ def is_tarball(name: str) -> bool:
     return name.lower().endswith(TARBALL_SUFFIXES)
 
 
-# Arch spellings that contain a separator; collapsed to one token before splitting.
-_COMPOUND_ARCH = ((re.compile(r"x86[-_]64"), "amd64"), (re.compile(r"aarch[-_]64"), "aarch64"))
+# Arch spellings that contain a separator or carry an ISA extension suffix
+# (Rust's riscv64gc); collapsed to one token before splitting.
+_COMPOUND_ARCH = (
+    (re.compile(r"x86[-_]64"), "amd64"),
+    (re.compile(r"aarch[-_]64"), "aarch64"),
+    (re.compile(r"riscv64[a-z0-9]*"), "riscv64"),
+)
 
 
 def _tokens(name: str) -> set[str]:

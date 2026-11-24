@@ -50,12 +50,15 @@ v0.3 plan (agreed 2026-11-24):
        test failed (libportal from Python: callback got an extra argument, and the
        autostart Exec lost its command line); the portal is now called over D-Bus
        and was verified for real (correct `Exec=… --command=tarseer … --background`,
-       removed again on disable) (`d09f95f`). Background-apps list in Quick Settings: manual test (`6c8002b`).
-6. [ ] **Dev/test.** Done in step 3: `TARSEER_CHECK_INTERVAL=<s>`, `--check-now`,
-       dev settings keyfile, `dev_screenshot.py --background-check`. Left: screenshot
-       of the Preferences group; manual test of the portal prompt, autostart after
-       re-login, notification click, locked keyring / auto-login (the keyring may
-       ask to be unlocked at login: the check goes on without the token after 30 s).
+       removed again on disable) (`d09f95f`). Verified manually: the switch stays on, Tarseer shows in Quick Settings'
+       background apps with a periodic frequency, and "At login only" exits after its check (`6c8002b`).
+6. [ ] **Dev/test.** Done: `TARSEER_CHECK_INTERVAL=<s>`, `--check-now`, dev settings
+       keyfile, `dev_screenshot.py --background-check` and `--pref-background`, real
+       portal on/off, Quick Settings entry, login-only run (manual, 2026-11-24).
+       Left (manual, when a real update shows up): a real notification and clicking
+       it (opens Tarseer and checks; also after a login-only run exited, through
+       D-Bus activation); "no notification while the window has focus"; locked
+       keyring / auto-login (the check goes on without the token after 30 s).
 7. [ ] **Small extras.** `riscv64gc` arch alias; "Reinstall now" after changing
        the release file.
 8. [ ] **Release 0.3.0.** Version bump, metainfo notes, README, merge to `main`, tag.

@@ -107,6 +107,13 @@ class AppManager:
         count = len(self._apps) if apps is None else len(apps)
         return github.get_rate_limit().remaining >= count + QUOTA_MARGIN
 
+    def check_if_quota(self) -> dict[str, CheckResult] | None:
+        """For unattended checks: check every app, or return None without
+        checking if that would leave less than QUOTA_MARGIN requests."""
+        if not self.has_quota_for():
+            return None
+        return self.check_updates()
+
     def check_updates(
         self,
         apps: list[ManagedApp] | None = None,

@@ -460,6 +460,15 @@ class CheckUpdatesTest(unittest.TestCase):
         with limit(11):
             self.assertFalse(self.manager.has_quota_for(apps))
 
+    def test_check_if_quota(self):
+        quota = github.RateLimit(60, 13, 0)  # 4 apps + 10 needed
+        with mock.patch.object(github, "get_rate_limit", return_value=quota):
+            self.assertIsNone(self.manager.check_if_quota())
+        self.assertEqual(self.calls, [])
+        quota = github.RateLimit(60, 14, 0)
+        with mock.patch.object(github, "get_rate_limit", return_value=quota):
+            self.assertEqual(len(self.manager.check_if_quota()), 4)
+
 
 class ReleaseCacheTest(unittest.TestCase):
     def setUp(self):

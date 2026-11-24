@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import sys
-
 from gi.repository import Adw, Gio, Gtk
 
-from ..core.config import ConfigError
 from ..core.github import RateLimitError, TokenRejectedError
 from ..core.manager import AppManager
 from ..core.models import CheckResult, ManagedApp, Release
@@ -12,11 +9,9 @@ from .add_dialog import AddDialog
 from .alerts import show_error, show_launcher_warnings
 from .details_dialog import DetailsDialog
 from .preferences_dialog import PreferencesDialog
-from . import token_store
+from .settings import app_settings
 from .app_row import AppRow
 from .tasks import on_main_loop, run_task
-
-APP_ID = "io.github.davideb263.Tarseer"
 
 
 @Gtk.Template(resource_path="/io/github/davideb263/Tarseer/ui/window.ui")
@@ -33,7 +28,7 @@ class TarseerWindow(Adw.ApplicationWindow):
         super().__init__(**kwargs)
 
         # Remember the window size between launches.
-        self.settings = Gio.Settings(schema_id=APP_ID)
+        self.settings = app_settings()
         self.settings.bind("window-width", self, "default-width", Gio.SettingsBindFlags.DEFAULT)
         self.settings.bind("window-height", self, "default-height", Gio.SettingsBindFlags.DEFAULT)
         self.settings.bind("window-maximized", self, "maximized", Gio.SettingsBindFlags.DEFAULT)
@@ -70,37 +65,29 @@ class TarseerWindow(Adw.ApplicationWindow):
         self._update_done: list[AppRow] = []
         self._update_current: AppRow | None = None
         self._update_stopped = False
-        # The saved token is read asynchronously (the keyring may need unlocking).
-        self._token_loading = True
-        self._token_set_by_user = False  # in Preferences, before loading finished
         self._check_after_token = False
         self._preferences: PreferencesDialog | None = None
 
-        try:
-            self.manager: AppManager | None = AppManager()
-        except ConfigError as e:
-            # Don't create a manager: saving would overwrite the unreadable file.
-            self.manager = None
-            self.error_page.set_description(str(e))
+        app = self.get_application()
+        self.manager: AppManager | None = app.manager
+        if self.manager is None:
+            # The config couldn't be read (the app keeps no manager: saving would overwrite it).
+            self.error_page.set_description(str(app.config_error))
             self.main_stack.set_visible_child_name("error")
             self.check_action.set_enabled(False)
             self.add_app_action.set_enabled(False)
             self.update_all_action.set_enabled(False)
             self.preferences_action.set_enabled(False)
             return
-        token_store.load(self._on_token_loaded)
+        # The application outlives this window when it keeps running in the background.
+        handler = app.connect("token-loaded", self._on_token_loaded)
+        self.connect("destroy", lambda *_: app.disconnect(handler))
         self.populate()
         if self.manager.startup_warnings:
             # Wait until the window is on screen so the alert has a parent to attach to.
             self.connect("map", lambda *_: show_launcher_warnings(self, self.manager.startup_warnings))
 
-    def _on_token_loaded(self, token: str | None, error: Exception | None) -> None:
-        self._token_loading = False
-        if error is not None:
-            # No keyring (or the portal refused): work without a token.
-            print(f"Tarseer: could not read the GitHub token from the keyring: {error}", file=sys.stderr)
-        elif not self._token_set_by_user:  # never undo a token the user just saved or removed
-            self.manager.set_token(token)
+    def _on_token_loaded(self, _app) -> None:
         if self._preferences is not None:
             self._preferences.token_loaded()
         if self._check_after_token:
@@ -109,8 +96,9 @@ class TarseerWindow(Adw.ApplicationWindow):
 
     # ── Preferences ──────────────────────────────────────────────────────────
     def open_preferences(self) -> None:
-        dialog = self._preferences = PreferencesDialog(self.manager, token_loading=self._token_loading)
-        dialog.connect("token-changed", lambda *_: setattr(self, "_token_set_by_user", True))
+        app = self.get_application()
+        dialog = self._preferences = PreferencesDialog(self.manager, token_loading=app.token_loading)
+        dialog.connect("token-changed", lambda *_: setattr(app, "token_set_by_user", True))
         dialog.connect("closed", self._on_preferences_closed)
         dialog.present(self)
 
@@ -135,6 +123,18 @@ class TarseerWindow(Adw.ApplicationWindow):
             self.list_box.append(row)
         self.rows = list(self.rows_by_id.values())
         self.main_stack.set_visible_child_name("list" if self.rows else "empty")
+        self._sync_actions()
+
+    @property
+    def busy(self) -> bool:
+        """Checking, updating all, or any row busy (e.g. an update or a details operation)."""
+        return self._checking or self._update_queue is not None or any(r.busy for r in self.rows)
+
+    def refresh_rows(self) -> None:
+        """Show check results the manager got elsewhere (a background check)."""
+        for row in self.rows:
+            if not row.busy:
+                row.refresh()
         self._sync_actions()
 
     def _sync_actions(self) -> None:
@@ -212,7 +212,10 @@ class TarseerWindow(Adw.ApplicationWindow):
     def check_updates(self) -> None:
         if self._checking or not self.rows or self._update_queue is not None:
             return
-        if self._token_loading:
+        if self.get_application().background.checking:
+            self.toast(_("Already checking for updates in the background"))
+            return
+        if self.get_application().token_loading:
             self._check_after_token = True  # use the saved token, not the 60/hour limit
             return
         # Rows busy with another operation (e.g. in a details dialog) are skipped.

@@ -10,5 +10,20 @@
     <key name="window-maximized" type="b">
       <default>false</default>
     </key>
+    <key name="background-checks" type="b">
+      <default>false</default>
+      <summary>Check for updates in the background</summary>
+      <description>Start at login without a window and check for updates (registered through the Background portal).</description>
+    </key>
+    <key name="check-interval-hours" type="u">
+      <range min="0" max="168"/>
+      <default>6</default>
+      <summary>Hours between background checks</summary>
+      <description>0 checks only once at login, then exits.</description>
+    </key>
+    <key name="last-check" type="x">
+      <default>0</default>
+      <summary>Time of the last successful background check (Unix seconds)</summary>
+    </key>
   </schema>
 </schemalist>

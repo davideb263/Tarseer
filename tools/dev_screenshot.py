@@ -5,6 +5,7 @@ Runs INSIDE the installed Flatpak, e.g.:
   flatpak run --filesystem="$PWD/tools:ro" --filesystem="$DEV" --env=TARSEER_DEV_ROOT="$DEV" \
       --command=python3 io.github.davideb263.Tarseer "$PWD/tools/dev_screenshot.py" \
       "$DEV/shot.png" --check --update sparrow
+Background checks: settings for a dev root are in "$DEV/settings.ini" (group [tarseer]).
 """
 
 import argparse
@@ -28,6 +29,8 @@ from tarseer.main import TarseerApplication  # noqa: E402
 parser = argparse.ArgumentParser()
 parser.add_argument("out", help="final screenshot path")
 parser.add_argument("--check", action="store_true", help="run 'Check for updates' first")
+parser.add_argument("--background-check", action="store_true",
+                    help="instead of --check: run a background check (as the service does) with the window open")
 parser.add_argument("--update", metavar="APP_ID", help="then update this app ('all': press Update All)")
 parser.add_argument("--checked-shot", metavar="PATH", help="with --check: screenshot after the check")
 parser.add_argument("--progress-shot", metavar="PATH", help="screenshot 3s into the update")
@@ -332,7 +335,12 @@ def on_activate(application):
             do_check()
 
     def do_check():
-        if args.check:
+        if args.background_check:
+            def checked(ok):
+                print("background check succeeded:", ok)
+                GLib.timeout_add(300, lambda: do_update() and False)
+            application.background.run_check(checked)
+        elif args.check:
             win.activate_action("win.check-updates", None)
             GLib.timeout_add(500, lambda: wait_idle(win, do_update) and False)
         else:

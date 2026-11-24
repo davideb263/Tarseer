@@ -17,25 +17,33 @@ v0.3 plan (agreed 2026-11-24):
        replies cached in `$XDG_CACHE_HOME/tarseer/releases.json` (pruned to managed
        repos at startup); `AppManager.has_quota_for()` (every app counted as a
        request + 10 spare) for background runs to call first. Without a token a 304
-       still costs a request (verified live); with one GitHub says it's free:
-       confirm with a real token (`X-RateLimit-Remaining` unchanged on a re-check) (`d6654c6`).
-3. [ ] **Background service.** `tarseer --background`: no window, first check a few
-       minutes after login. Skip the run if `has_quota_for()` is False; keyring
-       token if readable, otherwise anonymous. Frequency setting: "At login only" (check, notify, exit)
-       or every 6 h (default) / 12 h / 24 h (resident: `hold()` + timer; the window
-       opens in the same process with the cached results). Autostart through
-       the Background portal (libportal `Xdp`, in the GNOME 51 runtime) and
-       `set_background_status`. Ctrl+Q quits completely.
+       still costs a request (verified live); with a token it's free (verified
+       manually with a real token: the quota in Preferences stays the same) (`d6654c6`).
+3. [x] **Background service** (`ui/background.py`). `tarseer --background`: no window,
+       first check 2 min after login (`--check-now`: right away); a second instance
+       hands off and exits. `check-interval-hours` 0 = at login only (check, retry
+       up to 3× every 5 min if offline, exit), otherwise resident: `hold()` and a
+       15-min tick that checks when due by wall clock (`core/schedule.py`, so
+       suspend counts). A normal launch also starts the resident service if
+       enabled; closing the window keeps it running, Ctrl+Q quits. Skips if the
+       quota is low or the window is busy; waits up to 30 s for the keyring, then
+       goes on without the token; errors only logged. The app now owns the manager
+       and token loading; an open window refreshes after a background check.
+       `ui/portal.py` wraps the Background portal (autostart + status); calling it
+       to register autostart is step 5.
 4. [ ] **Notifications.** One `Gio.Notification` per run listing the apps; clicking
        it only opens the window (no action buttons). Notify only about tags not
        notified before; withdraw it once updates are installed.
 5. [ ] **Preferences "Updates" group.** Switch "Check for updates in the background"
-       (opt-in, default off), frequency dropdown, "Last checked". gschema:
-       `background-checks`, `check-frequency`, `last-check`, `notified-tags`.
-       A portal refusal goes in an alert and turns the switch back off.
-6. [ ] **Dev/test.** `TARSEER_CHECK_INTERVAL=<s>` override and `--check-now`;
-       screenshot of the Preferences group; manual test of the portal prompt,
-       autostart after re-login, notification click, locked keyring.
+       (opt-in, default off; calls `portal.request_autostart`), frequency dropdown
+       (`check-interval-hours`: 0/6/12/24), "Last checked" (`last-check`); then
+       `BackgroundService.restart()`. A portal refusal goes in an alert and turns
+       the switch back off. (Keys added in step 3; `notified-tags` comes with step 4.)
+6. [ ] **Dev/test.** Done in step 3: `TARSEER_CHECK_INTERVAL=<s>`, `--check-now`,
+       dev settings keyfile, `dev_screenshot.py --background-check`. Left: screenshot
+       of the Preferences group; manual test of the portal prompt, autostart after
+       re-login, notification click, locked keyring / auto-login (the keyring may
+       ask to be unlocked at login: the check goes on without the token after 30 s).
 7. [ ] **Small extras.** `riscv64gc` arch alias; "Reinstall now" after changing
        the release file.
 8. [ ] **Release 0.3.0.** Version bump, metainfo notes, README, merge to `main`, tag.

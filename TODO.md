@@ -47,12 +47,11 @@ then translations + Flathub as a "v1.0 readiness" release.
       tooltip. Consider an "error details" action.
 - [ ] `riscv64gc` (ripgrep's name for riscv64) isn't recognized as a foreign
       arch, so it's offered on x86_64. Match arch tokens by prefix or add aliases.
-- [ ] The picker's "cancel" path on repository change (close it → "Repository
-      not changed") was not exercised by `dev_screenshot.py`; test manually.
 
 ## Done
 - [x] Re-pick the release file from the details dialog ("Change…"), and pick it
       again when a new repository names its files differently (`daff575`).
+      Cancel and confirm paths on repository change verified manually.
 - [x] Homepage, bug tracker and source URLs in the metainfo and About dialog (`d83cfa4`).
 - [x] Real app icon in `data/icons/` (`a401572` first draft; vector SVG in `4df7f2e`).
 - [x] v1: scaffold, core logic, main window, Add App dialog, details dialog

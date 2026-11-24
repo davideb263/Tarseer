@@ -47,7 +47,7 @@ then translations + Flathub as a "v1.0 readiness" release.
       Preferences (Preferences refreshes and checks wait for it); 401 blamed on
       the token only when one was sent; cancel hidden at extraction even without
       Content-Length; release file / repo picks dropped because the app got busy
-      now say so (uncommitted).
+      now say so (`7d04e30`).
 - [x] v0.2.0 "Update all, safely": re-pick release file, Update All, cancel
       downloads, GitHub token; version bump and metainfo release notes (`e82bbb8`).
 - [x] Optional GitHub token in Preferences, validated against GitHub, stored

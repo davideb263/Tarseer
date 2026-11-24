@@ -41,7 +41,7 @@ then translations + Flathub as a "v1.0 readiness" release.
 
 ## Done
 - [x] v0.2.1: review and security review fixes; version bump and metainfo
-      release notes (COMMIT).
+      release notes (`abcf182`).
 - [x] Fixes from the 2026-11-24 security review: symlinks escaping the install
       dir after a single top-level folder is flattened are refused; file names
       with control characters are never offered or written to a menu entry;

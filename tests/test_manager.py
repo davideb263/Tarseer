@@ -1,5 +1,6 @@
 import shutil
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -133,6 +134,27 @@ class ManagerTest(unittest.TestCase):
         manager.rollback(app)
         self.assertEqual((app.installed_tag, app.previous_tag), (None, "2.5.0"))
         self.assertTrue(manager.update_available(app, self.release("2.5.0")))
+
+    def test_cancelled_download_changes_nothing(self):
+        manager = AppManager(self.paths)
+        app = self.new_app(manager)
+        manager.install(app, self.release("2.4.2"))
+        cancel = threading.Event()
+        with self.assertRaises(github.CancelledError):
+            # Cancelled as the last chunk arrives: the download itself completes.
+            manager.install(app, self.release("2.4.3"), progress=lambda d, t: cancel.set(), cancel=cancel)
+        self.assertEqual((app.installed_tag, app.previous_tag), ("2.4.2", None))
+        self.assertFalse(manager.can_rollback(app))
+        self.assertEqual(AppManager(self.paths).get("sparrow").installed_tag, "2.4.2")
+        self.assertEqual([p.name for p in self.paths.install_root.iterdir()], ["sparrow"])
+        # A new app cancelled during its first install leaves nothing behind.
+        other = ManagedApp(id="other", name="Other", repo="o/other", asset_pattern=app.asset_pattern)
+        cancel = threading.Event()
+        cancel.set()
+        with self.assertRaises(github.CancelledError):
+            manager.install(other, self.release("2.4.3"), cancel=cancel)
+        self.assertIsNone(manager.get("other"))
+        self.assertEqual([p.name for p in self.paths.install_root.iterdir()], ["sparrow"])
 
     def test_no_matching_asset(self):
         manager = AppManager(self.paths)

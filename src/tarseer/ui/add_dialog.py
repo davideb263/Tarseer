@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import re
+import threading
 from pathlib import Path
 
 from gi.repository import Adw, GLib, GObject, Gtk
 
 from ..core import github
+from ..core.github import CancelledError
 from ..core.assets import pattern_from_name
 from ..core.manager import AppManager
 from ..core.models import ManagedApp, Release
@@ -42,6 +44,7 @@ class AddDialog(Adw.Dialog):
     install_button: Gtk.Button = Gtk.Template.Child()
     progress_page: Adw.StatusPage = Gtk.Template.Child()
     progress_bar: Gtk.ProgressBar = Gtk.Template.Child()
+    install_cancel_button: Gtk.Button = Gtk.Template.Child()
     review_icon: Gtk.Image = Gtk.Template.Child()
     review_title: Gtk.Label = Gtk.Template.Child()
     review_subtitle: Gtk.Label = Gtk.Template.Child()
@@ -55,6 +58,7 @@ class AddDialog(Adw.Dialog):
         self.release: Release | None = None
         self.app: ManagedApp | None = None
         self.asset_list = AssetList(self.assets_group)
+        self._cancel: threading.Event | None = None  # set while installing
         self.launcher = LauncherChoices(self.exec_row, self.icon_row)
 
     def toast(self, message: str) -> None:
@@ -131,33 +135,51 @@ class AddDialog(Adw.Dialog):
         )
 
         self.set_can_close(False)
+        cancel = self._cancel = threading.Event()
+        self.install_cancel_button.set_visible(True)
+        self.install_cancel_button.set_sensitive(True)
         self.progress_bar.set_fraction(0)
         self.progress_page.set_title(_("Installing {name}…").format(name=name))
         self.progress_page.set_description(_("Downloading…"))
         self.nav.push_by_tag("progress")
 
         def on_progress(done: int, total: int):
+            if cancel.is_set():
+                return  # keep showing "Cancelling…"
             if total:
                 self.progress_bar.set_fraction(done / total)
                 self.progress_page.set_description(_("Downloading {done} of {total}").format(
                     done=GLib.format_size(done), total=GLib.format_size(total)))
                 if done >= total:
                     self.progress_page.set_description(_("Extracting…"))
+                    self.install_cancel_button.set_visible(False)  # extraction can't be cancelled
             else:
                 self.progress_bar.pulse()
 
         def on_success(warnings: list[str]):
+            self._cancel = None
             self.app = app
             self.emit("app-changed", app, release)
             self._show_review(warnings)
 
         def on_error(error: Exception):
+            self._cancel = None
             self.set_can_close(True)
             self.nav.pop_to_tag("asset")
-            show_error(self, _("Installation Failed"), error)
+            if isinstance(error, CancelledError):
+                self.toast(_("Installation cancelled"))
+            else:
+                show_error(self, _("Installation Failed"), error)
 
-        run_task(self.manager.install, app, release, ThrottledProgress(on_progress),
+        run_task(self.manager.install, app, release, ThrottledProgress(on_progress), cancel,
                  on_success=on_success, on_error=on_error)
+
+    @Gtk.Template.Callback()
+    def on_install_cancel(self, *_args) -> None:
+        if self._cancel is not None:
+            self._cancel.set()
+            self.install_cancel_button.set_sensitive(False)
+            self.progress_page.set_description(_("Cancelling…"))
 
     # ── Step 4: review ───────────────────────────────────────────────────────
     def _show_review(self, warnings: list[str]) -> None:

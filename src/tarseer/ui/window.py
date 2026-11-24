@@ -45,6 +45,9 @@ class TarseerWindow(Adw.ApplicationWindow):
         self.update_all_action = Gio.SimpleAction.new("update-all", None)
         self.update_all_action.connect("activate", lambda *_: self.update_all())
         self.add_action(self.update_all_action)
+        self.stop_updates_action = Gio.SimpleAction.new("stop-updates", None)
+        self.stop_updates_action.connect("activate", lambda *_: self.stop_updates())
+        self.add_action(self.stop_updates_action)
 
         self.rows: list[AppRow] = []
         self.rows_by_id: dict[str, AppRow] = {}
@@ -54,6 +57,8 @@ class TarseerWindow(Adw.ApplicationWindow):
         # "Update All" run: rows still waiting, and the rows it handled so far.
         self._update_queue: list[AppRow] | None = None
         self._update_done: list[AppRow] = []
+        self._update_current: AppRow | None = None
+        self._update_stopped = False
 
         try:
             self.manager: AppManager | None = AppManager()
@@ -99,6 +104,19 @@ class TarseerWindow(Adw.ApplicationWindow):
         updates = sum(1 for r in self.rows if r.has_update)
         self.update_all_button.set_visible(updating_all or updates >= 2)
         self.update_all_action.set_enabled(updates >= 1 and not self._pending_checks and not updating_all)
+        # While running, the same button stops the run.
+        if updating_all:
+            self.update_all_button.set_action_name("win.stop-updates")
+            self.update_all_button.set_label(_("_Stop"))
+            self.update_all_button.set_tooltip_text(_("Cancel the current download and skip the remaining updates"))
+            self.update_all_button.remove_css_class("suggested-action")
+        else:
+            self.update_all_button.set_action_name("win.update-all")
+            self.update_all_button.set_label(_("_Update All"))
+            self.update_all_button.set_tooltip_text(
+                _("Update every app with an available update, one after another"))
+            self.update_all_button.add_css_class("suggested-action")
+        self.stop_updates_action.set_enabled(updating_all and not self._update_stopped)
 
     # ── Add app ──────────────────────────────────────────────────────────────
     def open_add_dialog(self) -> None:
@@ -172,32 +190,52 @@ class TarseerWindow(Adw.ApplicationWindow):
         queue = [r for r in self.rows if r.has_update and not r.busy]
         if not queue:
             return
-        self._update_queue, self._update_done = queue, []
+        self._update_queue, self._update_done, self._update_stopped = queue, [], False
         for row in queue:
             row.set_queued(True)
         self._sync_actions()
         self._update_next()
 
+    def stop_updates(self) -> None:
+        """Cancel the running download and drop the rest of the queue."""
+        if self._update_queue is None:
+            return
+        self._update_stopped = True
+        queue, self._update_queue = self._update_queue, []
+        for row in queue:
+            row.set_queued(False)
+        if self._update_current is not None:
+            self._update_current.cancel()
+        self._sync_actions()
+
     def _update_next(self, _finished: AppRow | None = None) -> None:
         if _finished is not None:
             self._update_done.append(_finished)
+        self._update_current = None
         while self._update_queue:
             row = self._update_queue.pop(0)
             if self.rows_by_id.get(row.app.id) is not row:
                 continue  # removed (or replaced) while waiting
             if row.update(done=self._update_next, quiet=True):
+                self._update_current = row
                 return
             # Nothing to do any more (already updated or busy): skip it.
         self._finish_update_all()
 
     def _finish_update_all(self) -> None:
         done, self._update_queue, self._update_done = self._update_done, None, []
+        stopped, self._update_stopped = self._update_stopped, False
         self._sync_actions()
         failed = [r for r in done if r.last_error]
-        updated = len(done) - len(failed)
+        updated = sum(1 for r in done if not r.last_error and not r.last_cancelled)
         problems = [_("{app}: {error}").format(app=r.app.name, error=r.last_error) for r in failed]
         problems += [w for r in done for w in r.last_warnings]
-        if updated:
+        if stopped and not updated:
+            self.toast(_("Updates stopped"))
+        elif stopped:
+            self.toast(ngettext("Updates stopped after {n} app", "Updates stopped after {n} apps",
+                                updated).format(n=updated))
+        elif updated:
             self.toast(ngettext("{n} app updated", "{n} apps updated", updated).format(n=updated))
         if failed:
             heading = ngettext("{n} Update Failed", "{n} Updates Failed", len(failed)).format(n=len(failed))

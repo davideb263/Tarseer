@@ -99,9 +99,25 @@ template $TarseerAddDialog: Adw.Dialog {
             icon-name: "folder-download-symbolic";
             title: _("Installing…");
 
-            child: ProgressBar progress_bar {
-              width-request: 280;
+            child: Box {
+              orientation: vertical;
+              spacing: 24;
               halign: center;
+
+              ProgressBar progress_bar {
+                width-request: 280;
+              }
+
+              Button install_cancel_button {
+                label: _("_Cancel");
+                use-underline: true;
+                halign: center;
+                clicked => $on_install_cancel();
+
+                styles [
+                  "pill",
+                ]
+              }
             };
           };
         };

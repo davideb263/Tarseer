@@ -57,9 +57,25 @@ template $TarseerAppRow: Adw.ActionRow {
 
     StackPage {
       name: "progress";
-      child: ProgressBar progress_bar {
-        width-request: 120;
-        valign: center;
+      child: Box {
+        spacing: 6;
+
+        ProgressBar progress_bar {
+          width-request: 120;
+          valign: center;
+        }
+
+        Button cancel_button {
+          icon-name: "process-stop-symbolic";
+          tooltip-text: _("Cancel Download");
+          valign: center;
+          clicked => $on_cancel_clicked();
+
+          styles [
+            "flat",
+            "circular",
+          ]
+        }
       };
     }
 

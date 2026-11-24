@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 from typing import Callable
 
 from gi.repository import Adw, Gio, GLib, GObject, Gtk
 
-from ..core.github import RateLimitError
+from ..core.github import CancelledError, RateLimitError
 from ..core.manager import AppManager
 from ..core.models import ManagedApp, Release
 from .tasks import ThrottledProgress, run_task
@@ -30,6 +31,7 @@ class AppRow(Adw.ActionRow):
     icon: Gtk.Image = Gtk.Template.Child()
     state_stack: Gtk.Stack = Gtk.Template.Child()
     progress_bar: Gtk.ProgressBar = Gtk.Template.Child()
+    cancel_button: Gtk.Button = Gtk.Template.Child()
     error_icon: Gtk.Image = Gtk.Template.Child()
 
     def __init__(self, manager: AppManager, app: ManagedApp):
@@ -43,6 +45,8 @@ class AppRow(Adw.ActionRow):
         # Results of the last update(quiet=True), for the caller to report.
         self.last_error: str | None = None
         self.last_warnings: list[str] = []
+        self.last_cancelled = False
+        self._cancel: threading.Event | None = None  # set while an update downloads
         self.refresh()
 
     # ── Display ──────────────────────────────────────────────────────────────
@@ -135,24 +139,31 @@ class AppRow(Adw.ActionRow):
             return False
         self.busy = True
         self._error = None
-        self.last_error, self.last_warnings = None, []
+        self.last_error, self.last_warnings, self.last_cancelled = None, [], False
         release = self.release
+        cancel = self._cancel = threading.Event()
+        self.cancel_button.set_visible(True)
+        self.cancel_button.set_sensitive(True)
         self.progress_bar.set_fraction(0)
         self.state_stack.set_visible_child_name("progress")
         self.set_subtitle(_("Downloading…"))
 
         def on_progress(done_bytes: int, total: int):
+            if cancel.is_set():
+                return  # keep showing "Cancelling…"
             if total:
                 self.progress_bar.set_fraction(done_bytes / total)
                 self.set_subtitle(_("Downloading {done} of {total}").format(
                     done=GLib.format_size(done_bytes), total=GLib.format_size(total)))
                 if done_bytes >= total:
                     self.set_subtitle(_("Installing…"))
+                    self.cancel_button.set_visible(False)  # extraction can't be cancelled
             else:
                 self.progress_bar.pulse()
 
         def finish():
             self.busy = False
+            self._cancel = None
             self.refresh()
             if done:
                 done(self)
@@ -166,11 +177,28 @@ class AppRow(Adw.ActionRow):
             finish()
 
         def on_error(error: Exception):
+            if isinstance(error, CancelledError):
+                self.last_cancelled = True
+                if not quiet:
+                    self.emit("notify-user", _("{app} update cancelled").format(app=self.app.name))
+                finish()
+                return
             self._error = self.last_error = str(error)
             if not quiet:
                 self.emit("show-error", _("Could Not Update {app}").format(app=self.app.name), str(error))
             finish()
 
-        run_task(self.manager.install, self.app, release, ThrottledProgress(on_progress),
+        run_task(self.manager.install, self.app, release, ThrottledProgress(on_progress), cancel,
                  on_success=on_success, on_error=on_error)
         return True
+
+    @Gtk.Template.Callback()
+    def on_cancel_clicked(self, *_args) -> None:
+        self.cancel()
+
+    def cancel(self) -> None:
+        """Stop the running download, if any; the update then ends as cancelled."""
+        if self._cancel is not None:
+            self._cancel.set()
+            self.cancel_button.set_sensitive(False)
+            self.set_subtitle(_("Cancelling…"))

@@ -46,9 +46,35 @@ parser.add_argument("--pick-file", metavar="NAME", help="file to choose in the p
 parser.add_argument("--details-shot", metavar="PATH", help="with --details: screenshot before the action")
 parser.add_argument("--details-bottom-shot", metavar="PATH",
                     help="with --details: also screenshot scrolled to the bottom")
+parser.add_argument("--slow-download", action="store_true",
+                    help="throttle downloads (~250 KB/s) so progress and cancelling can be seen")
+parser.add_argument("--cancel-after", type=float, metavar="SECONDS",
+                    help="cancel the --update (Stop for 'all') or the --add install after SECONDS")
 parser.add_argument("--size", default="720x560")
 parser.add_argument("--timeout", type=float, default=300)
 args = parser.parse_args()
+
+if args.slow_download:
+    from tarseer.core import github
+
+    class _SlowResponse:
+        def __init__(self, resp):
+            self._resp = resp
+            self.headers = resp.headers
+
+        def read(self, n=-1):
+            if n and n > 0:
+                time.sleep(0.25)
+            return self._resp.read(n)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return self._resp.__exit__(*exc)
+
+    _real_urlopen = github._urlopen
+    github._urlopen = lambda *a, **kw: _SlowResponse(_real_urlopen(*a, **kw))
 
 app = TarseerApplication("dev")
 app.set_flags(app.get_flags() | Gio.ApplicationFlags.NON_UNIQUE)
@@ -107,8 +133,17 @@ def drive_add_dialog(win, then):
             dialog().name_entry.set_text(args.add_name)
         GLib.timeout_add(600, lambda: (shot("asset"), dialog().on_install(), progress_shot())[-1] and False)
 
+    def cancel_install():
+        dialog().on_install_cancel()
+        shot("cancelling")
+        wait_for(lambda: tag() == "asset",
+                 lambda: GLib.timeout_add(800, lambda: (shot("cancelled"), app.quit())[-1] and False))
+
     def progress_shot():
         GLib.timeout_add(2500, lambda: (shot("progress") if tag() == "progress" else None) and False)
+        if args.cancel_after:
+            GLib.timeout_add(int(args.cancel_after * 1000), lambda: cancel_install() and False)
+            return
         wait_for(lambda: tag() == "review", step_review)
 
     def step_review():
@@ -217,6 +252,12 @@ def on_activate(application):
         if args.update == "all":
             win.activate_action("win.update-all", None)
             print("states:", {r.app.id: r.state_stack.get_visible_child_name() for r in win.rows})
+            if args.cancel_after:
+                def stop():
+                    if args.progress_shot:
+                        screenshot(win, args.progress_shot.replace(".png", "-before-stop.png"))
+                    win.activate_action("win.stop-updates", None)
+                GLib.timeout_add(int(args.cancel_after * 1000), lambda: stop() and False)
             if args.progress_shot:  # on the next frame: small downloads finish within a second
                 clock = win.get_frame_clock()
                 handler = []
@@ -229,6 +270,8 @@ def on_activate(application):
         elif args.update:
             row = next(r for r in win.rows if r.app.id == args.update)
             row.update()
+            if args.cancel_after:
+                GLib.timeout_add(int(args.cancel_after * 1000), lambda: row.cancel() and False)
             if args.progress_shot:
                 GLib.timeout_add(3000, lambda: screenshot(win, args.progress_shot) and False)
             GLib.timeout_add(500, lambda: wait_idle(win, finish) and False)

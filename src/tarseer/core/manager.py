@@ -74,7 +74,9 @@ class AppManager:
         """Install or update `app` to `release`, registering it if new.
 
         Returns warnings (e.g. the menu entry could not be created); the
-        install itself succeeded if this returns. A new app that cannot be
+        install itself succeeded if this returns. Setting `cancel` during the
+        download raises github.CancelledError and leaves the installed version as is;
+        once extraction has started it can no longer be cancelled. A new app that cannot be
         saved to the config is removed again, so a failed install leaves nothing behind.
         """
         if app.id.endswith(_RESERVED_SUFFIXES) or "/" in app.id or app.id.startswith("."):
@@ -92,6 +94,9 @@ class AppManager:
         try:
             os.close(fd)
             github.download(asset.url, archive, progress=progress, cancel=cancel)
+            if cancel is not None and cancel.is_set():
+                # Cancelled on the last chunk: don't go on and replace the installed version.
+                raise github.CancelledError()
             target = self.install_dir(app)
             made_backup = installer.install_archive(archive, target)
         finally:

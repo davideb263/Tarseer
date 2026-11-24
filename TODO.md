@@ -6,8 +6,7 @@ found while working.
 
 ## Next up
 v0.2 "Update all, safely", in this order:
-1. Cancel a running download (also: cancel the rest of an "Update All").
-2. Optional GitHub token in the keyring.
+1. Optional GitHub token in the keyring.
 
 Planned for v0.3: background checks + notifications (needs the token);
 then translations + Flathub as a "v1.0 readiness" release.
@@ -18,8 +17,6 @@ then translations + Flathub as a "v1.0 readiness" release.
       or autostart entry; mind the GitHub rate limit.
 - [ ] **Optional GitHub token** (Preferences) to raise the API limit from 60 to
       5000 requests/hour. Store it in the keyring (libsecret), not in apps.json.
-- [ ] **Cancel a running download** (core already supports a cancel event in
-      `github.download`).
 - [ ] **Multiple app grid entries per app**, e.g. Calibre's E-book Viewer and
       Editor alongside the main program.
 - [ ] **`StartupWMClass` detection/setting**, so running apps get the right icon
@@ -47,6 +44,9 @@ then translations + Flathub as a "v1.0 readiness" release.
       arch, so it's offered on x86_64. Match arch tokens by prefix or add aliases.
 
 ## Done
+- [x] Cancel a running download: ✕ next to a row's progress bar, Cancel on the
+      Add App progress page, and Update All turns into Stop while it runs.
+      Extraction can't be cancelled, so the buttons hide once the download ends (COMMIT).
 - [x] "Update All" in the header bar (2+ updates): one app at a time, queued rows
       marked, failures collected into one alert at the end (`a047284`).
 - [x] Re-pick the release file from the details dialog ("Change…"), and pick it

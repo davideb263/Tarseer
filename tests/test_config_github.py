@@ -2,6 +2,7 @@ import email.message
 import io
 import json
 import tempfile
+import threading
 import unittest
 import urllib.error
 from pathlib import Path
@@ -74,6 +75,22 @@ class GitHubTest(unittest.TestCase):
             rel = github.get_latest_release("o/r")
         self.assertEqual(rel.tag, "v8.1.0")
         self.assertEqual(rel.assets[0].url, "https://d/c.txz")
+
+    def test_download_cancel(self):
+        body = io.BytesIO(b"x" * (github.CHUNK * 3))
+        body.headers = {"Content-Length": str(github.CHUNK * 3)}
+        cancel = threading.Event()
+        seen = []
+
+        def progress(done, total):
+            seen.append(done)
+            cancel.set()
+
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(github, "_urlopen", return_value=body), \
+                self.assertRaises(github.CancelledError):
+            github.download("https://d/x", Path(tmp) / "x", progress=progress, cancel=cancel)
+        self.assertEqual(seen, [github.CHUNK])
 
     def test_errors_translated(self):
         cases = [

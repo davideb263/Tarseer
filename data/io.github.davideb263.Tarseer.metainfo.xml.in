@@ -20,6 +20,18 @@
   <launchable type="desktop-id">io.github.davideb263.Tarseer.desktop</launchable>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.2.0" date="2026-11-24">
+      <description>
+        <p>Updating many apps is now one click, and you stay in control of it.</p>
+        <ul>
+          <li>Update All updates every app with an available update, one after another</li>
+          <li>Running downloads can be cancelled, and Update All can be stopped</li>
+          <li>The release file can be picked again from an app's details</li>
+          <li>Changing an app's repository asks for the file again when the new one names its files differently, instead of failing on the next update</li>
+          <li>An optional GitHub access token in Preferences raises the limit from 60 to 5,000 requests per hour</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.0" date="2026-11-23"/>
   </releases>
 </component>

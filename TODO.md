@@ -5,9 +5,6 @@ Ideas and known issues for after v1. Keep this file current: move items to
 found while working.
 
 ## Next up
-v0.2 "Update all, safely", in this order:
-1. Release prep: bump to 0.2.0, release notes in the metainfo.
-
 Planned for v0.3: background checks + notifications (needs the token);
 then translations + Flathub as a "v1.0 readiness" release.
 
@@ -42,6 +39,8 @@ then translations + Flathub as a "v1.0 readiness" release.
       arch, so it's offered on x86_64. Match arch tokens by prefix or add aliases.
 
 ## Done
+- [x] v0.2.0 "Update all, safely": re-pick release file, Update All, cancel
+      downloads, GitHub token; version bump and metainfo release notes (COMMIT).
 - [x] Optional GitHub token in Preferences, validated against GitHub, stored
       with libsecret (Secret portal), sent only to api.github.com (`a312cd0`).
       Saving a real token was tested with a faked GitHub reply only; test

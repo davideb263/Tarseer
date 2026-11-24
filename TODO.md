@@ -5,7 +5,6 @@ Ideas and known issues for after v1. Keep this file current: move items to
 found while working.
 
 ## Next up
-- [ ] **Real app icon** to replace the placeholder in `data/icons/`.
 - [ ] **Homepage/repo URL** in the metainfo (`url type="homepage"`) and About
       dialog, once the project is published on GitHub.
 
@@ -29,7 +28,7 @@ found while working.
 - [ ] **Adopt an existing install** (point at a folder + tell Tarseer its version)
       instead of reinstalling.
 - [ ] **Translations:** strings already use `_()`; set up `po/` and Meson i18n.
-- [ ] **Flathub submission** (needs: real icon, screenshots in metainfo, homepage URL,
+- [ ] **Flathub submission** (needs: screenshots in metainfo, homepage URL,
       review of `--filesystem` permissions).
 - [ ] **Custom app Icon picking** Let the user pick a custom icon for the .desktop file.
       Put an option to pick a custom icon near or in the already existing dropdown where
@@ -48,6 +47,7 @@ found while working.
       Re-pick the file on repo change (ties in with editing the pattern).
 
 ## Done
+- [x] Real app icon in `data/icons/` (commit pending).
 - [x] v1: scaffold, core logic, main window, Add App dialog, details dialog
       (`f471394` … `ac25af6`).
 - [x] Menu entries named `<id>.desktop` with conflict detection and migration of

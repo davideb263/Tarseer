@@ -17,9 +17,8 @@ Tarseer does this for you. It's a GNOME app (GTK4 + libadwaita), similar to
 **seer**, someone who sees what others miss. With eyes like that, it spots new
 releases of your tarballs as soon as they come out.
 
-> **Status:** early development (0.1.0). It works, but the icon is a
-> placeholder and it isn't on Flathub yet. See [TODO.md](TODO.md) for what's
-> planned.
+> **Status:** early development (0.1.0). It works, but it isn't on Flathub
+> yet. See [TODO.md](TODO.md) for what's planned.
 
 ## Features
 

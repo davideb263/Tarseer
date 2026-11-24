@@ -46,7 +46,7 @@ then translations + Flathub as a "v1.0 readiness" release.
       HTTPS-only opener that drops `Authorization` on cross-host redirects;
       downloads checked against the asset's `size` and `sha256` digest; app ids
       validated on load (an empty id made Remove delete all of `~/.local/opt`);
-      extraction stops before leaving less than 512 MiB free (commit: TBD).
+      extraction stops before leaving less than 512 MiB free (`ac86e90`).
 - [x] Fixes from the v0.1.0..v0.2.0 review: `selectable_assets` test was never
       collected; rate limit / rejected token errors from a check are one alert,
       not a toast per app; rows no longer stay "Queued" after a details-dialog

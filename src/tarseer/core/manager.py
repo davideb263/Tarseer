@@ -84,13 +84,15 @@ class AppManager:
         release: Release,
         progress: Callable[[int, int], None] | None = None,
         cancel: threading.Event | None = None,
+        extracting: Callable[[], None] | None = None,
     ) -> list[str]:
         """Install or update `app` to `release`, registering it if new.
 
         Returns warnings (e.g. the menu entry could not be created); the
         install itself succeeded if this returns. Setting `cancel` during the
         download raises github.CancelledError and leaves the installed version as is;
-        once extraction has started it can no longer be cancelled. A new app that cannot be
+        once extraction has started it can no longer be cancelled: `extracting()` is
+        called (from this thread) right before that point. A new app that cannot be
         saved to the config is removed again, so a failed install leaves nothing behind.
         """
         if app.id.endswith(_RESERVED_SUFFIXES) or "/" in app.id or app.id.startswith("."):
@@ -111,6 +113,8 @@ class AppManager:
             if cancel is not None and cancel.is_set():
                 # Cancelled on the last chunk: don't go on and replace the installed version.
                 raise github.CancelledError()
+            if extracting is not None:
+                extracting()
             target = self.install_dir(app)
             made_backup = installer.install_archive(archive, target)
         finally:

@@ -114,7 +114,7 @@ def _request(url: str, accept: str, token: str | None = None) -> urllib.request.
 
 
 def _translate_http_error(e: urllib.error.HTTPError, what: str, token: str | None = None) -> GitHubError:
-    if e.code == 401:
+    if e.code == 401 and token:  # without a token, 401 isn't about ours
         return TokenRejectedError()
     if e.code in (403, 429) and e.headers.get("x-ratelimit-remaining") == "0":
         reset = e.headers.get("x-ratelimit-reset")

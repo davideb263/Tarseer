@@ -34,11 +34,20 @@ then translations + Flathub as a "v1.0 readiness" release.
       consider showing the file name with the folder as subtitle.
 - [ ] "Check for updates" errors are still toasts (one alert per app would
       pile up), so long ones get cut off; the full text is only in the row's ⚠
-      tooltip. Consider an "error details" action.
+      tooltip. Consider an "error details" action. (Rate limit and rejected
+      token errors are already alerts, shown once per check.)
 - [ ] `riscv64gc` (ripgrep's name for riscv64) isn't recognized as a foreign
       arch, so it's offered on x86_64. Match arch tokens by prefix or add aliases.
 
 ## Done
+- [x] Fixes from the v0.1.0..v0.2.0 review: `selectable_assets` test was never
+      collected; rate limit / rejected token errors from a check are one alert,
+      not a toast per app; rows no longer stay "Queued" after a details-dialog
+      operation; a late keyring read no longer overwrites a token set in
+      Preferences (Preferences refreshes and checks wait for it); 401 blamed on
+      the token only when one was sent; cancel hidden at extraction even without
+      Content-Length; release file / repo picks dropped because the app got busy
+      now say so (uncommitted).
 - [x] v0.2.0 "Update all, safely": re-pick release file, Update All, cancel
       downloads, GitHub token; version bump and metainfo release notes (`e82bbb8`).
 - [x] Optional GitHub token in Preferences, validated against GitHub, stored

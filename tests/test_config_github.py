@@ -1,6 +1,7 @@
 import email.message
 import io
 import json
+import os
 import tempfile
 import threading
 import unittest
@@ -132,6 +133,13 @@ class GitHubTest(unittest.TestCase):
         with mock.patch.object(github, "_urlopen", side_effect=err), \
                 self.assertRaises(github.TokenRejectedError):
             github.get_rate_limit("bad")
+        # Without a token (e.g. downloads), a 401 is not blamed on the token.
+        err = http_error(401)
+        self.addCleanup(err.close)
+        with mock.patch.object(github, "_urlopen", side_effect=err), \
+                self.assertRaises(github.GitHubError) as ctx:
+            github.download("https://example.com/f.tar.gz", Path(os.devnull))
+        self.assertNotIsInstance(ctx.exception, github.TokenRejectedError)
         self.assertIn("Preferences", str(github.RateLimitError(None)))
         self.assertNotIn("Preferences", str(github.RateLimitError(None, with_token=True)))
 

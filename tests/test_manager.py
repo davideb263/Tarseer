@@ -65,7 +65,9 @@ class ManagerTest(unittest.TestCase):
 
         newer = self.release("2.5.0")
         self.assertTrue(manager.update_available(app, newer))
-        manager.install(app, newer)
+        extracting = []
+        manager.install(app, newer, extracting=lambda: extracting.append(app.installed_tag))
+        self.assertEqual(extracting, ["2.4.2"])  # called once, before the swap
         self.assertEqual((app.installed_tag, app.previous_tag), ("2.5.0", "2.4.2"))
         self.assertFalse(manager.update_available(app, newer))
 

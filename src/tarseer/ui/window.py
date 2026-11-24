@@ -54,7 +54,7 @@ class TarseerWindow(Adw.ApplicationWindow):
         self.add_action(self.stop_updates_action)
 
         self.preferences_action = Gio.SimpleAction.new("preferences", None)
-        self.preferences_action.connect("activate", lambda *_: PreferencesDialog(self.manager).present(self))
+        self.preferences_action.connect("activate", lambda *_: self.open_preferences())
         self.add_action(self.preferences_action)
         self.get_application().set_accels_for_action("win.preferences", ["<primary>comma"])
 
@@ -68,6 +68,11 @@ class TarseerWindow(Adw.ApplicationWindow):
         self._update_done: list[AppRow] = []
         self._update_current: AppRow | None = None
         self._update_stopped = False
+        # The saved token is read asynchronously (the keyring may need unlocking).
+        self._token_loading = True
+        self._token_set_by_user = False  # in Preferences, before loading finished
+        self._check_after_token = False
+        self._preferences: PreferencesDialog | None = None
 
         try:
             self.manager: AppManager | None = AppManager()
@@ -88,11 +93,28 @@ class TarseerWindow(Adw.ApplicationWindow):
             self.connect("map", lambda *_: show_launcher_warnings(self, self.manager.startup_warnings))
 
     def _on_token_loaded(self, token: str | None, error: Exception | None) -> None:
+        self._token_loading = False
         if error is not None:
             # No keyring (or the portal refused): work without a token.
             print(f"Tarseer: could not read the GitHub token from the keyring: {error}", file=sys.stderr)
-            return
-        self.manager.set_token(token)
+        elif not self._token_set_by_user:  # never undo a token the user just saved or removed
+            self.manager.set_token(token)
+        if self._preferences is not None:
+            self._preferences.token_loaded()
+        if self._check_after_token:
+            self._check_after_token = False
+            self.check_updates()
+
+    # ── Preferences ──────────────────────────────────────────────────────────
+    def open_preferences(self) -> None:
+        dialog = self._preferences = PreferencesDialog(self.manager, token_loading=self._token_loading)
+        dialog.connect("token-changed", lambda *_: setattr(self, "_token_set_by_user", True))
+        dialog.connect("closed", self._on_preferences_closed)
+        dialog.present(self)
+
+    def _on_preferences_closed(self, dialog: PreferencesDialog) -> None:
+        if self._preferences is dialog:
+            self._preferences = None
 
     def populate(self) -> None:
         """Sync the list with the manager, keeping existing rows (and their check state)."""
@@ -104,7 +126,7 @@ class TarseerWindow(Adw.ApplicationWindow):
             if row is None:
                 row = AppRow(self.manager, app)
                 row.connect("notify-user", lambda _row, msg: self.toast(msg))
-                row.connect("show-error", lambda _row, heading, body: show_error(self, heading, body))
+                row.connect("show-error", lambda _row, heading, body: self._show_row_error(heading, body))
                 row.connect("launcher-warnings", lambda _row, w: show_launcher_warnings(self, w))
                 row.connect("refreshed", lambda _row: self._sync_actions())
             self.rows_by_id[app.id] = row
@@ -165,17 +187,31 @@ class TarseerWindow(Adw.ApplicationWindow):
         if is_new:
             self.toast(_("{name} installed").format(name=app.name))
 
+    def _first_time_this_check(self, message: str) -> bool:
+        """During a check, many rows can fail the same way (e.g. rate limit or a
+        revoked token): False if `message` was already shown in this check."""
+        if not self._pending_checks:
+            return True
+        if message in self._shown_messages:
+            return False
+        self._shown_messages.add(message)
+        return True
+
     def toast(self, message: str) -> None:
-        # During a check, many rows can fail the same way (e.g. rate limit): show it once.
-        if self._pending_checks:
-            if message in self._shown_messages:
-                return
-            self._shown_messages.add(message)
-        self.toast_overlay.add_toast(Adw.Toast(title=message, use_markup=False))
+        if self._first_time_this_check(message):
+            self.toast_overlay.add_toast(Adw.Toast(title=message, use_markup=False))
+
+    def _show_row_error(self, heading: str, body: str) -> None:
+        # Keyed on the heading: rate limit bodies differ in the minutes left.
+        if self._first_time_this_check(heading):
+            show_error(self, heading, body)
 
     # ── Check for updates ────────────────────────────────────────────────────
     def check_updates(self) -> None:
         if self._pending_checks or not self.rows or self._update_queue is not None:
+            return
+        if self._token_loading:
+            self._check_after_token = True  # use the saved token, not the 60/hour limit
             return
         self._pending_checks = len(self.rows)
         self._sync_actions()
@@ -192,7 +228,7 @@ class TarseerWindow(Adw.ApplicationWindow):
             return
         self._sync_actions()
         if self._check_errors:
-            return  # each failing row already showed its own toast
+            return  # each failing row already showed its own toast or alert
         updates = sum(1 for r in self.rows if r.has_update)
         if updates:
             self.toast(ngettext("{n} update available", "{n} updates available", updates).format(n=updates))

@@ -6,10 +6,10 @@ from typing import Callable
 
 from gi.repository import Adw, Gio, GLib, GObject, Gtk
 
-from ..core.github import CancelledError, RateLimitError
+from ..core.github import CancelledError, RateLimitError, TokenRejectedError
 from ..core.manager import AppManager
 from ..core.models import ManagedApp, Release
-from .tasks import ThrottledProgress, run_task
+from .tasks import ThrottledProgress, on_main_loop, run_task
 
 
 @Gtk.Template(resource_path="/io/github/davideb263/Tarseer/ui/app_row.ui")
@@ -111,10 +111,12 @@ class AppRow(Adw.ActionRow):
         def on_error(error: Exception):
             self._error = str(error)
             if isinstance(error, RateLimitError):
-                message = str(error)  # same for every app, so the window shows it once
+                # Same for every app and the user has to act: the window shows it once.
+                self.emit("show-error", _("GitHub Rate Limit Reached"), str(error))
+            elif isinstance(error, TokenRejectedError):
+                self.emit("show-error", _("Access Token Rejected"), str(error))
             else:
-                message = _("{app}: {error}").format(app=self.app.name, error=error)
-            self.emit("notify-user", message)
+                self.emit("notify-user", _("{app}: {error}").format(app=self.app.name, error=error))
             finish()
 
         run_task(self.manager.fetch_latest, self.app.repo, on_success=on_success, on_error=on_error)
@@ -155,11 +157,16 @@ class AppRow(Adw.ActionRow):
                 self.progress_bar.set_fraction(done_bytes / total)
                 self.set_subtitle(_("Downloading {done} of {total}").format(
                     done=GLib.format_size(done_bytes), total=GLib.format_size(total)))
-                if done_bytes >= total:
-                    self.set_subtitle(_("Installing…"))
-                    self.cancel_button.set_visible(False)  # extraction can't be cancelled
             else:
                 self.progress_bar.pulse()
+
+        def on_extracting():
+            # Runs after every queued progress update. Extraction can't be cancelled,
+            # so drop the event: the ✕ and Update All's Stop no longer affect this row.
+            self._cancel = None
+            self.cancel_button.set_visible(False)
+            self.progress_bar.set_fraction(1)
+            self.set_subtitle(_("Installing…"))
 
         def finish():
             self.busy = False
@@ -189,7 +196,7 @@ class AppRow(Adw.ActionRow):
             finish()
 
         run_task(self.manager.install, self.app, release, ThrottledProgress(on_progress), cancel,
-                 on_success=on_success, on_error=on_error)
+                 on_main_loop(on_extracting), on_success=on_success, on_error=on_error)
         return True
 
     @Gtk.Template.Callback()

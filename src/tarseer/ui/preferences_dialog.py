@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from gi.repository import Adw, GLib, Gtk
+from gi.repository import Adw, GLib, GObject, Gtk
 
 from ..core.github import RateLimit, TokenRejectedError
 from ..core.manager import AppManager
@@ -15,15 +15,29 @@ NEW_TOKEN_URL = ("https://github.com/settings/personal-access-tokens/new"
 @Gtk.Template(resource_path="/io/github/davideb263/Tarseer/ui/preferences_dialog.ui")
 class PreferencesDialog(Adw.PreferencesDialog):
     __gtype_name__ = "TarseerPreferencesDialog"
+    __gsignals__ = {
+        # The user saved or removed the token.
+        "token-changed": (GObject.SignalFlags.RUN_FIRST, None, ()),
+    }
 
     token_row: Adw.PasswordEntryRow = Gtk.Template.Child()
     status_row: Adw.ActionRow = Gtk.Template.Child()
     status_spinner: Adw.Spinner = Gtk.Template.Child()
     remove_row: Adw.ButtonRow = Gtk.Template.Child()
 
-    def __init__(self, manager: AppManager):
+    def __init__(self, manager: AppManager, token_loading: bool = False):
+        """With `token_loading`, the saved token is still being read: call
+        token_loaded() once it is."""
         super().__init__()
         self.manager = manager
+        self._sync_token_rows()
+        if token_loading:
+            self.status_spinner.set_visible(True)
+            self.status_row.set_subtitle(_("Reading the saved token from your keyring…"))
+        else:
+            self.refresh_status()
+
+    def token_loaded(self) -> None:
         self._sync_token_rows()
         self.refresh_status()
 
@@ -85,6 +99,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
                            .format(error=error))
                     return
                 self.manager.set_token(token)
+                self.emit("token-changed")
                 self.token_row.set_text("")
                 self.token_row.set_sensitive(True)
                 self._sync_token_rows()
@@ -111,6 +126,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
                 show_error(self, _("Could Not Remove the Token"), error)
                 return
             self.manager.set_token(None)
+            self.emit("token-changed")
             self._sync_token_rows()
             self.refresh_status()
             self.toast(_("Token removed"))

@@ -110,6 +110,14 @@ class DetailsDialog(Adw.Dialog):
     def _finish(self) -> None:
         self.row.busy = False
         self._update_sensitivity()
+        # While the row was busy, Update All may have moved past it (clearing
+        # `queued`) without redrawing it: do it now, on success and failure alike.
+        self.row.refresh()
+
+    def _busy_error(self, heading: str) -> None:
+        """Something else claimed the app while the user was choosing."""
+        show_error(self, heading, _("{name} is busy with another operation, so nothing was "
+                                    "changed. Try again when it has finished.").format(name=self.app.name))
 
     # ── General ──────────────────────────────────────────────────────────────
     @Gtk.Template.Callback()
@@ -174,6 +182,7 @@ class DetailsDialog(Adw.Dialog):
     def _commit_repo(self, repo: str, release: Release, pattern: str | None) -> None:
         if not self._start():
             self.repo_row.set_text(self.app.repo)
+            self._busy_error(_("Repository Not Changed"))
             return
 
         def on_success(_result):
@@ -225,7 +234,10 @@ class DetailsDialog(Adw.Dialog):
         picker.present(self)
 
     def _commit_pattern(self, pattern: str, release: Release) -> None:
-        if pattern == self.app.asset_pattern or not self._start():
+        if pattern == self.app.asset_pattern:
+            return
+        if not self._start():
+            self._busy_error(_("Release File Not Changed"))
             return
 
         def on_success(_result):

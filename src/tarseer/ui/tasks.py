@@ -37,6 +37,11 @@ def run_task(
     return thread
 
 
+def on_main_loop(callback: Callable[..., None]) -> Callable[..., None]:
+    """Wrap `callback` so calling it from any thread runs it on the main loop."""
+    return lambda *args: GLib.idle_add(_call, callback, *args)
+
+
 class ThrottledProgress:
     """A progress(done, total) callback, safe to call from any thread, that
     forwards to `callback` on the main loop at most every `interval` seconds."""

@@ -111,13 +111,13 @@ class TestPattern(unittest.TestCase):
         self.assertEqual(found.name, "app-2.0-x86_64.tar.gz")
         self.assertIsNone(match_asset(assets("other.tar.gz"), pattern))
 
-
-if __name__ == "__main__":
-    unittest.main()
-
     def test_selectable_assets_falls_back_to_every_tarball(self):
         release = assets("tool-1.0-arm64.tar.gz", "tool-1.0-windows.zip", "tool-1.0-riscv64.tar.xz")
         self.assertEqual([a.name for a in selectable_assets(release, "x86_64")],
                          ["tool-1.0-arm64.tar.gz", "tool-1.0-riscv64.tar.xz"])
         release = assets("tool-1.0-arm64.tar.gz", "tool-1.0-x86_64.tar.gz")
         self.assertEqual([a.name for a in selectable_assets(release, "x86_64")], ["tool-1.0-x86_64.tar.gz"])
+
+
+if __name__ == "__main__":
+    unittest.main()

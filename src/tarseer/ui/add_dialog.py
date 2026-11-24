@@ -14,7 +14,7 @@ from ..core.models import ManagedApp, Release
 from .alerts import show_error, show_launcher_warnings
 from .asset_list import AssetList
 from .launcher_choices import LauncherChoices
-from .tasks import ThrottledProgress, run_task
+from .tasks import ThrottledProgress, on_main_loop, run_task
 
 
 def _default_name(repo: str) -> str:
@@ -150,11 +150,14 @@ class AddDialog(Adw.Dialog):
                 self.progress_bar.set_fraction(done / total)
                 self.progress_page.set_description(_("Downloading {done} of {total}").format(
                     done=GLib.format_size(done), total=GLib.format_size(total)))
-                if done >= total:
-                    self.progress_page.set_description(_("Extracting…"))
-                    self.install_cancel_button.set_visible(False)  # extraction can't be cancelled
             else:
                 self.progress_bar.pulse()
+
+        def on_extracting():
+            self._cancel = None  # extraction can't be cancelled
+            self.install_cancel_button.set_visible(False)
+            self.progress_bar.set_fraction(1)
+            self.progress_page.set_description(_("Extracting…"))
 
         def on_success(warnings: list[str]):
             self._cancel = None
@@ -172,7 +175,7 @@ class AddDialog(Adw.Dialog):
                 show_error(self, _("Installation Failed"), error)
 
         run_task(self.manager.install, app, release, ThrottledProgress(on_progress), cancel,
-                 on_success=on_success, on_error=on_error)
+                 on_main_loop(on_extracting), on_success=on_success, on_error=on_error)
 
     @Gtk.Template.Callback()
     def on_install_cancel(self, *_args) -> None:

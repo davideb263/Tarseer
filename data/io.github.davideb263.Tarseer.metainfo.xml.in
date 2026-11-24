@@ -20,6 +20,19 @@
   <launchable type="desktop-id">io.github.davideb263.Tarseer.desktop</launchable>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.2.1" date="2026-11-24">
+      <description>
+        <p>Bug fixes and security hardening.</p>
+        <ul>
+          <li>Downloads are checked against the size and checksum GitHub publishes, and only HTTPS is used</li>
+          <li>The GitHub access token is no longer sent when a request is redirected to another server</li>
+          <li>Archives can no longer place links pointing outside the app folder or add entries to the menu file</li>
+          <li>Installing stops before the disk would run almost full</li>
+          <li>Rate limit and rejected token errors from a check are shown once, in a dialog</li>
+          <li>Rows no longer stay marked as queued after Update All, and cancelling is no longer offered during extraction</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.2.0" date="2026-11-24">
       <description>
         <p>Updating many apps is now one click, and you stay in control of it.</p>

@@ -58,11 +58,15 @@ v0.3 plan (agreed 2026-11-24):
        clicking it both with Tarseer running and after it exited (D-Bus activation)
        (manual, 2026-11-24, with a fake-GitHub dev sandbox). Left: locked keyring /
        auto-login (the check goes on without the token after 30 s).
-7. [ ] **Small extras.**
+7. [x] **Small extras.**
    - [x] Arch names: `riscv64gc` (any `riscv64*`) and Rust-style `powerpc64`,
          `powerpc64le`, `loongarch64`/`loong64`, MIPS are known, so they're no longer
          offered on other machines (ripgrep offered riscv64gc and powerpc64 on x86_64) (`0b9845c`).
-   - [ ] "Reinstall now" after changing the release file.
+   - [x] "Reinstall now": after changing the release file while the installed tag
+         is the latest, an alert offers Reinstall / Later. Reinstall runs as a row
+         update (progress, cancel, backup kept for rollback) and closes the details
+         dialog. Verified with ripgrep 16.0.0 gnu → musl (static binary installed,
+         gnu kept in `.bak`) and Later (pattern saved, files untouched).
 8. [ ] **Release 0.3.0.** Version bump, metainfo notes, README, merge to `main`, tag.
 
 ## Features
@@ -74,9 +78,6 @@ v0.3 plan (agreed 2026-11-24):
 - [ ] **`StartupWMClass` detection/setting**, so running apps get the right icon
       in the dash instead of a generic or duplicate one (especially Java apps
       like Sparrow).
-- [ ] **"Reinstall now" after changing the release file.** A new file is only
-      used from the next update; if the installed tag is already the latest,
-      offer to reinstall it (e.g. switching from the gnu to the musl build).
 - [ ] **Pre-release channel** per app (use `/releases` instead of `/releases/latest`).
 - [ ] **Adopt an existing install** (point at a folder + tell Tarseer its version)
       instead of reinstalling.

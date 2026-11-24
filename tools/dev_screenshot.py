@@ -21,7 +21,7 @@ import gi  # noqa: E402
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 gi.require_version("Graphene", "1.0")
-from gi.repository import Gio, GLib, Graphene, Gtk  # noqa: E402
+from gi.repository import Adw, Gio, GLib, Graphene, Gtk  # noqa: E402
 
 Gio.Resource.load("/app/share/tarseer/tarseer.gresource")._register()
 from tarseer.main import TarseerApplication  # noqa: E402
@@ -45,6 +45,9 @@ parser.add_argument("--details-action", choices=["rollback", "remove-confirm", "
 parser.add_argument("--details-repo", metavar="REPO",
                     help="with --details: change the repository (screenshots the file picker if one opens)")
 parser.add_argument("--picker-shot", metavar="PATH", help="screenshot of the release file picker")
+parser.add_argument("--reinstall-response", choices=["later", "reinstall"],
+                    help="with change-file: answer the 'Reinstall now?' alert (when the tag is the latest)")
+parser.add_argument("--reinstall-shot", metavar="PATH", help="screenshot of the 'Reinstall now?' alert")
 parser.add_argument("--pick-file", metavar="NAME", help="file to choose in the picker (default: preselected)")
 parser.add_argument("--details-shot", metavar="PATH", help="with --details: screenshot before the action")
 parser.add_argument("--details-bottom-shot", metavar="PATH",
@@ -211,7 +214,7 @@ def drive_details(win, then):
             dialog._on_remove_response(None, "remove")
         elif args.details_action == "change-file":
             dialog.on_change_file()
-            return wait_for(picker, lambda: use_picker(after))
+            return wait_for(picker, lambda: use_picker(answer_reinstall if args.reinstall_response else after))
         if args.details_repo:
             dialog.repo_row.set_text(args.details_repo)
             dialog.on_repo_apply()
@@ -222,6 +225,20 @@ def drive_details(win, then):
 
     def after():
         GLib.timeout_add(1000, lambda: wait_idle(win, then) and False)
+
+    def reinstall_alert():
+        d = dialog.get_root().get_visible_dialog() if dialog.get_root() else None
+        return d if isinstance(d, Adw.AlertDialog) else None
+
+    def answer_reinstall():
+        def answer():
+            alert = reinstall_alert()
+            if args.reinstall_shot:
+                screenshot(win, args.reinstall_shot)
+            alert.emit("response", args.reinstall_response)
+            alert.force_close()
+            GLib.timeout_add(500, lambda: after() and False)
+        wait_for(reinstall_alert, lambda: GLib.timeout_add(600, lambda: answer() and False))
 
     def picker():
         from tarseer.ui.release_file_dialog import ReleaseFileDialog

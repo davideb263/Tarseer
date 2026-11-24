@@ -125,8 +125,12 @@ class AppRow(Adw.ActionRow):
     def on_update_clicked(self, *_args) -> None:
         self.update()
 
-    def update(self, done: Callable[["AppRow"], None] | None = None, quiet: bool = False) -> bool:
+    def update(self, done: Callable[["AppRow"], None] | None = None, quiet: bool = False,
+               reinstall: Release | None = None) -> bool:
         """Update to the last checked release. `done(row)` is called when finished.
+
+        With `reinstall`, install that release even if it's the installed version
+        (e.g. to switch to another release file now instead of at the next update).
 
         With `quiet`, success and failure aren't reported to the user; the caller
         reads `last_error` and `last_warnings` instead. Returns False (and doesn't
@@ -135,13 +139,13 @@ class AppRow(Adw.ActionRow):
         self.queued = False
         if self.busy:
             return False  # its own operation redraws the row when it finishes
-        if not self.has_update:
+        if reinstall is None and not self.has_update:
             self.refresh()
             return False
         self.busy = True
         self._update_error = None
         self.last_error, self.last_warnings, self.last_cancelled = None, [], False
-        release = self.release
+        release = reinstall or self.release
         cancel = self._cancel = threading.Event()
         self.cancel_button.set_visible(True)
         self.cancel_button.set_sensitive(True)
@@ -177,7 +181,9 @@ class AppRow(Adw.ActionRow):
         def on_success(warnings: list[str]):
             self.last_warnings = warnings
             if not quiet:
-                self.emit("notify-user", _("{app} updated to {tag}").format(app=self.app.name, tag=release.tag))
+                message = (_("{app} {tag} reinstalled") if reinstall is not None
+                           else _("{app} updated to {tag}"))
+                self.emit("notify-user", message.format(app=self.app.name, tag=release.tag))
                 if warnings:
                     self.emit("launcher-warnings", warnings)
             finish()

@@ -243,8 +243,11 @@ class DetailsDialog(Adw.Dialog):
         def on_success(_result):
             self._finish()
             self.refresh()
-            self.toast(_("Release file changed. It is used from the next update."))
             self.emit("app-changed", self.app, release)
+            if release.tag == self.app.installed_tag:
+                self._offer_reinstall(release)  # otherwise nothing would use it for a while
+            else:
+                self.toast(_("Release file changed. It is used from the next update."))
 
         def on_error(error: Exception):
             self._finish()
@@ -252,6 +255,32 @@ class DetailsDialog(Adw.Dialog):
 
         run_task(self.manager.set_asset_pattern, self.app, pattern,
                  on_success=on_success, on_error=on_error)
+
+    def _offer_reinstall(self, release: Release) -> None:
+        alert = Adw.AlertDialog(
+            heading=_("Reinstall {name} Now?").format(name=self.app.name),
+            body=_("{tag} is already the latest version, so the new release file would only "
+                   "be used from the next update.\n\nReinstalling downloads it now. The current "
+                   "files are kept as the previous version, so you can roll back to them.")
+                 .format(tag=release.tag),
+        )
+        alert.add_response("later", _("_Later"))
+        alert.add_response("reinstall", _("_Reinstall"))
+        alert.set_response_appearance("reinstall", Adw.ResponseAppearance.SUGGESTED)
+        alert.set_default_response("reinstall")
+        alert.set_close_response("later")
+
+        def on_response(_alert, response: str):
+            if response != "reinstall":
+                self.toast(_("Release file changed. It is used from the next update."))
+                return
+            if self.row.update(reinstall=release):
+                self.close()  # the progress shows in the app's row
+            else:
+                self._busy_error(_("{name} Not Reinstalled").format(name=self.app.name))
+
+        alert.connect("response", on_response)
+        alert.present(self)
 
     # ── Version ──────────────────────────────────────────────────────────────
     @Gtk.Template.Callback()

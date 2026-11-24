@@ -61,7 +61,7 @@ v0.3 plan (agreed 2026-11-24):
 7. [ ] **Small extras.**
    - [x] Arch names: `riscv64gc` (any `riscv64*`) and Rust-style `powerpc64`,
          `powerpc64le`, `loongarch64`/`loong64`, MIPS are known, so they're no longer
-         offered on other machines (ripgrep offered riscv64gc and powerpc64 on x86_64).
+         offered on other machines (ripgrep offered riscv64gc and powerpc64 on x86_64) (`0b9845c`).
    - [ ] "Reinstall now" after changing the release file.
 8. [ ] **Release 0.3.0.** Version bump, metainfo notes, README, merge to `main`, tag.
 

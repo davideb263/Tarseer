@@ -88,6 +88,30 @@ Supported formats: `.tar.gz`/`.tgz`, `.tar.xz`/`.txz`, `.tar.bz2`/`.tbz2`,
 The installed version is the release tag Tarseer recorded when it installed
 the app. Tarseer never runs the apps it manages to find out their version.
 
+## Known limitations
+
+Tarseer is made for and tested on GNOME. It hasn't been tested on other
+desktops yet. Based on how it is built:
+
+- **Works on any desktop:** installing, updating and rolling back apps.
+  Menu entries are standard `.desktop` files, which KDE Plasma, XFCE,
+  Cinnamon, MATE and launchers like rofi or wofi all read. Some may need a
+  menu refresh or a new login before a new entry shows up.
+- **Looks like a GNOME app everywhere.** It uses libadwaita, so it doesn't
+  follow other desktops' themes (e.g. Breeze on KDE).
+- **Background checks** use the XDG Background portal. GNOME and KDE Plasma
+  support it. On other setups (e.g. Sway, Hyprland), turning them on may be
+  refused, and Tarseer tells you so. Even when the start-at-login entry is
+  written, a window manager without XDG autostart support (or a helper like
+  `dex`) won't start it.
+- **Notifications** need a Notification portal backend (e.g.
+  `xdg-desktop-portal-gtk`) and a notification daemon (e.g. mako, dunst) on
+  desktops that don't provide them.
+- **The GitHub token** is stored through the Secret Service, so it needs
+  GNOME Keyring, KWallet (5.97 or later) or another Secret Service provider.
+  Without one, the token can't be saved. Tarseer still works without a token,
+  with GitHub's lower request limit.
+
 ## Building
 
 Tarseer is built as a Flatpak against the GNOME 51 runtime:

@@ -64,3 +64,7 @@ Python + PyGObject, GTK4 + libadwaita 1.10, Blueprint UI files, Meson, Flatpak
 - The installed version is the release tag Tarseer recorded at install time;
   never run managed apps' binaries to detect versions (doesn't work in the sandbox).
 - Any new host path the app touches needs a matching `--filesystem` in the manifest.
+- Desktop integration goes through XDG portals or freedesktop standards
+  (no GNOME Shell D-Bus, extensions or GNOME-only settings), lives in a `ui/`
+  module and fails gracefully with a message, so other desktops stay possible
+  (see README "Known limitations" and TODO.md "Other desktops").

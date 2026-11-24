@@ -33,6 +33,17 @@ Planned for the next release: translations + Flathub as a "v1.0 readiness" relea
       tooltip. Consider an "error details" action. (Rate limit and rejected
       token errors are already alerts, shown once per check.)
 
+## Other desktops (low priority)
+Tarseer targets GNOME; see README "Known limitations". If support is broadened:
+- [ ] **Test on KDE Plasma and a tiling WM** (e.g. Sway) in a VM or second session;
+      fix what breaks.
+- [ ] **Autostart fallback** when the Background portal is missing or refuses:
+      offer to write `~/.config/autostart/<app id>.desktop` directly (needs
+      `--filesystem=xdg-config/autostart:create`).
+- [ ] **Token fallback** when no Secret Service is available: offer to keep the
+      token in a file only the user can read, with a warning.
+- [ ] **GNOME-specific wording** ("app grid", …) in labels: make it neutral.
+
 ## Done
 - [x] v0.3.0 "Updates come to you" (plan agreed 2026-11-24):
       1. [x] **Check logic in core.** `AppManager.check_updates()` returns a release or

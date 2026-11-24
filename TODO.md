@@ -40,7 +40,7 @@ then translations + Flathub as a "v1.0 readiness" release.
 
 ## Done
 - [x] v0.2.0 "Update all, safely": re-pick release file, Update All, cancel
-      downloads, GitHub token; version bump and metainfo release notes (COMMIT).
+      downloads, GitHub token; version bump and metainfo release notes (`e82bbb8`).
 - [x] Optional GitHub token in Preferences, validated against GitHub, stored
       with libsecret (Secret portal), sent only to api.github.com (`a312cd0`).
       Saving a real token was tested with a faked GitHub reply only; test

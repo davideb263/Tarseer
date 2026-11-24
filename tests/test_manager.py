@@ -33,7 +33,8 @@ class ManagerTest(unittest.TestCase):
     def tearDown(self):
         self._tmp.cleanup()
 
-    def fake_download(self, url, dest, progress=None, cancel=None):
+    def fake_download(self, url, dest, progress=None, cancel=None, size=0, digest=None):
+        self.download_args = (size, digest)
         shutil.copyfile(self.archives[url], dest)
         if progress:
             progress(1, 1)
@@ -181,6 +182,33 @@ class ManagerTest(unittest.TestCase):
         manager.set_launcher(app, "bin/Sparrow", None)
         self.assertIn("Icon=application-x-executable",
                       (self.paths.applications_dir / "sparrow.desktop").read_text())
+
+    def test_set_launcher_rejects_control_characters(self):
+        manager = AppManager(self.paths)
+        app = self.new_app(manager)
+        manager.install(app, self.release("2.4.2", extra={"Sparrow/bin/x\ny": ELF}))
+        with self.assertRaises(InstallError):
+            manager.set_launcher(app, "bin/x\ny", None)
+        self.assertEqual(app.executable, "bin/Sparrow")
+
+    def test_invalid_id_never_touches_install_root(self):
+        manager = AppManager(self.paths)
+        manager.install(self.new_app(manager), self.release("2.4.2"))
+        for bad in ("", "..", "x/../.."):
+            app = ManagedApp(id=bad, name="Bad", repo="o/r", asset_pattern=".*")
+            with self.subTest(bad):
+                with self.assertRaises(InstallError):
+                    manager.install(app, self.release("2.4.3"))
+                with self.assertRaises(InstallError):
+                    manager.remove(app)
+        self.assertTrue((self.paths.install_root / "sparrow" / "bin" / "Sparrow").is_file())
+
+    def test_download_gets_size_and_digest(self):
+        manager = AppManager(self.paths)
+        rel = self.release("2.4.2")
+        rel.assets[0].size, rel.assets[0].digest = 123, "sha256:ab"
+        manager.install(self.new_app(manager), rel)
+        self.assertEqual(self.download_args, (123, "sha256:ab"))
 
     def test_set_name_and_repo(self):
         manager = AppManager(self.paths)

@@ -26,8 +26,19 @@ def _simplify(s: str) -> str:
     return re.sub(r"[^a-z0-9]", "", s.lower())
 
 
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
+
+
+def is_safe_relpath(rel: str) -> bool:
+    """True if `rel` can go in a menu entry: no control characters (a newline
+    in an archive's file name would otherwise add lines to the .desktop file)."""
+    return not _CONTROL_CHARS.search(rel)
+
+
 def _walk(root: Path, max_depth: int, skip: set[str]):
-    """Yield (path, depth) for regular files, skipping symlinked dirs and `skip` dirs."""
+    """Yield (path, depth) for regular files, skipping symlinked dirs, `skip`
+    dirs, names unusable in a menu entry and symlinks leading outside `root`."""
+    real_root = root.resolve()
     stack = [(root, 0)]
     while stack:
         current, depth = stack.pop()
@@ -36,10 +47,14 @@ def _walk(root: Path, max_depth: int, skip: set[str]):
         except OSError:
             continue
         for entry in entries:
+            if not is_safe_relpath(entry.name):
+                continue
             if entry.is_dir() and not entry.is_symlink():
                 if depth + 1 < max_depth and entry.name.lower() not in skip:
                     stack.append((entry, depth + 1))
             elif entry.is_file():
+                if entry.is_symlink() and not entry.resolve().is_relative_to(real_root):
+                    continue
                 yield entry, depth
 
 
@@ -164,7 +179,7 @@ def _quote_exec_arg(arg: str) -> str:
 
 
 def _escape_value(value: str) -> str:
-    return value.replace("\\", "\\\\").replace("\n", " ").replace("\r", " ").replace("\t", " ")
+    return _CONTROL_CHARS.sub(" ", value.replace("\\", "\\\\"))
 
 
 LEGACY_PREFIX = "tarseer-"  # names used before v0.1 switched to plain "<id>.desktop"
@@ -202,6 +217,9 @@ def is_owned(path: Path, app_id: str) -> bool:
 def render_desktop_entry(app: ManagedApp, install_dir: Path) -> str:
     if not app.executable:
         raise ValueError("App has no executable set")
+    for rel in (app.executable, app.icon):
+        if rel is not None and not is_safe_relpath(rel):
+            raise ValueError(f"Unusable file name for a menu entry: {rel!r}")
     lines = [
         "[Desktop Entry]",
         "Type=Application",

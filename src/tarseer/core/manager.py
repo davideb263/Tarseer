@@ -13,9 +13,7 @@ from . import config, desktop, github, installer
 from .assets import match_asset, validate_pattern
 from .desktop import DesktopConflictError
 from .installer import InstallError
-from .models import ManagedApp, Paths, Release
-
-_RESERVED_SUFFIXES = (".bak", ".swap")
+from .models import ManagedApp, Paths, Release, is_valid_id
 
 
 def slugify(name: str) -> str:
@@ -42,6 +40,10 @@ class AppManager:
         return self._apps.get(app_id)
 
     def install_dir(self, app: ManagedApp) -> Path:
+        # An id like "" or "../x" would point at the install root itself, or
+        # outside it: remove() would then delete far more than one app.
+        if not is_valid_id(app.id):
+            raise InstallError(f"Invalid app id: {app.id!r}")
         return self.paths.install_root / app.id
 
     def can_rollback(self, app: ManagedApp) -> bool:
@@ -95,8 +97,7 @@ class AppManager:
         called (from this thread) right before that point. A new app that cannot be
         saved to the config is removed again, so a failed install leaves nothing behind.
         """
-        if app.id.endswith(_RESERVED_SUFFIXES) or "/" in app.id or app.id.startswith("."):
-            raise InstallError(f"Invalid app id: {app.id!r}")
+        target = self.install_dir(app)  # validates the id
         asset = match_asset(release.assets, app.asset_pattern)
         if asset is None:
             raise InstallError(
@@ -109,13 +110,13 @@ class AppManager:
         archive = Path(tmp_name)
         try:
             os.close(fd)
-            github.download(asset.url, archive, progress=progress, cancel=cancel)
+            github.download(asset.url, archive, progress=progress, cancel=cancel,
+                            size=asset.size, digest=asset.digest)
             if cancel is not None and cancel.is_set():
                 # Cancelled on the last chunk: don't go on and replace the installed version.
                 raise github.CancelledError()
             if extracting is not None:
                 extracting()
-            target = self.install_dir(app)
             made_backup = installer.install_archive(archive, target)
         finally:
             archive.unlink(missing_ok=True)
@@ -167,6 +168,8 @@ class AppManager:
         for rel in (executable, icon):
             if rel is None:
                 continue
+            if not desktop.is_safe_relpath(rel):
+                raise InstallError(f"{rel!r} can't be used in an app grid entry")
             path = (target / rel).resolve()
             if not path.is_relative_to(target.resolve()) or not path.is_file():
                 raise InstallError(f"{rel} is not a file inside {target}")
@@ -211,12 +214,19 @@ class AppManager:
     def _revalidate_launcher_paths(self, app: ManagedApp) -> None:
         """Re-guess launcher paths that are unset or missing in the version now installed."""
         target = self.install_dir(app)
-        if not app.executable or not (target / app.executable).is_file():
+        if not app.executable or not self._usable(target, app.executable):
             app.executable = desktop.guess_executable(target, app.name)
-        if app.icon and not (target / app.icon).is_file():
+        if app.icon and not self._usable(target, app.icon):
             app.icon = None
         if not app.icon:
             app.icon = desktop.guess_icon(target, app.name)
+
+    @staticmethod
+    def _usable(target: Path, rel: str) -> bool:
+        """`rel` is still a file inside `target` that a menu entry can name."""
+        path = (target / rel).resolve()
+        return (desktop.is_safe_relpath(rel) and path.is_relative_to(target.resolve())
+                and path.is_file())
 
     def _discard(self, app: ManagedApp) -> None:
         """Best-effort removal of a new app's files and menu entry after a failed install."""

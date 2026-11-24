@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -21,12 +23,10 @@ CHUNK = 64 * 1024
 _REPO_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 _URL_RE = re.compile(r"^(?:https?://)?(?:www\.)?github\.com/([^/\s]+)/([^/\s#?]+)")
 
-# Indirection so tests can patch the network.
-_urlopen = urllib.request.urlopen
-
 # Optional personal access token, raising the API limit from 60 to 5000
-# requests/hour. Sent only to the API, never with downloads: urllib keeps
-# headers across redirects, which would leak it to the file host.
+# requests/hour. Sent only to the API, never with downloads (they redirect to
+# a file host); _SafeRedirectHandler also drops it if the API ever redirects
+# to another host.
 _token: str | None = None
 
 
@@ -78,6 +78,35 @@ class CancelledError(Exception):
     pass
 
 
+def _host(url: str) -> str | None:
+    return urllib.parse.urlsplit(url).hostname
+
+
+class _SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """urllib's default follows redirects to http:// and ftp:// and keeps every
+    header, Authorization included, even when the host changes."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if urllib.parse.urlsplit(newurl).scheme != "https":
+            raise GitHubError(f"Refused an insecure redirect to {newurl}")
+        new = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if new is not None and _host(newurl) != _host(req.full_url):
+            new.remove_header("Authorization")
+        return new
+
+
+# HTTPS only: no file://, ftp:// or data: handlers to reach by accident.
+# (ProxyHandler keeps honouring https_proxy like urlopen did.)
+_opener = urllib.request.OpenerDirector()
+for _handler in (urllib.request.ProxyHandler(), urllib.request.UnknownHandler(),
+                 urllib.request.HTTPSHandler(), _SafeRedirectHandler(),
+                 urllib.request.HTTPDefaultErrorHandler(), urllib.request.HTTPErrorProcessor()):
+    _opener.add_handler(_handler)
+
+# Indirection so tests can patch the network.
+_urlopen = _opener.open
+
+
 def parse_repo(text: str) -> str:
     """Accept "owner/repo" or any github.com URL and return "owner/repo"."""
     text = text.strip()
@@ -97,7 +126,8 @@ def release_from_json(data: dict) -> Release:
         name=data.get("name") or "",
         html_url=data.get("html_url") or "",
         assets=[
-            Asset(name=a["name"], url=a["browser_download_url"], size=a.get("size") or 0)
+            Asset(name=a["name"], url=a["browser_download_url"], size=a.get("size") or 0,
+                  digest=a.get("digest") or None)
             for a in data.get("assets", [])
         ],
     )
@@ -105,6 +135,8 @@ def release_from_json(data: dict) -> Release:
 
 def _request(url: str, accept: str, token: str | None = None) -> urllib.request.Request:
     """`token` is only used for API URLs (see `_token`)."""
+    if urllib.parse.urlsplit(url).scheme != "https":
+        raise GitHubError(f"Refused to download from a non-HTTPS address: {url}")
     headers = {"Accept": accept, "User-Agent": USER_AGENT}
     if url.startswith(API + "/"):
         headers["X-GitHub-Api-Version"] = "2022-11-28"
@@ -164,20 +196,37 @@ def download(
     progress: Callable[[int, int], None] | None = None,
     cancel: threading.Event | None = None,
     timeout: float = 30,
+    size: int = 0,
+    digest: str | None = None,
 ) -> None:
-    """Stream `url` into `dest`. progress(done_bytes, total_bytes or 0)."""
+    """Stream `url` into `dest`. progress(done_bytes, total_bytes or 0).
+
+    `size` and `digest` ("sha256:<hex>") are what the API says the file is;
+    when given, a download that doesn't match raises GitHubError.
+    """
+    algorithm, _, expected_hash = (digest or "").partition(":")
+    hasher = hashlib.sha256() if algorithm == "sha256" and expected_hash else None
     try:
         with _urlopen(_request(url, "application/octet-stream"), timeout=timeout) as resp, \
                 open(dest, "wb") as out:
-            total = int(resp.headers.get("Content-Length") or 0)
+            total = size or int(resp.headers.get("Content-Length") or 0)
             done = 0
             while chunk := resp.read(CHUNK):
                 if cancel is not None and cancel.is_set():
                     raise CancelledError()
-                out.write(chunk)
                 done += len(chunk)
+                if size and done > size:
+                    raise GitHubError(f"Download is larger than the {size} bytes GitHub announced")
+                out.write(chunk)
+                if hasher:
+                    hasher.update(chunk)
                 if progress:
                     progress(done, total)
+        if total and done != total:
+            raise GitHubError(f"Download incomplete: got {done} of {total} bytes")
+        if hasher and hasher.hexdigest() != expected_hash.lower():
+            raise GitHubError("The downloaded file doesn't match the checksum GitHub published "
+                              "for it. Try again later.")
     except urllib.error.HTTPError as e:
         raise _translate_http_error(e, "Download") from e
     except urllib.error.URLError as e:

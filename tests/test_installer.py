@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -137,6 +138,34 @@ class InstallerTest(unittest.TestCase):
                     installer.install_archive(archive, target)
                 self.assertFalse(target.exists())
         self.assertFalse((self.tmp / "evil").exists())
+
+    def test_link_escaping_the_flattened_folder_rejected(self):
+        # Inside the staging folder at extraction time, but "../victim" from the
+        # install dir once "app/" is flattened into it: a sibling app's folder.
+        (self.root / "victim").mkdir(parents=True)
+        archive = make_tarball(self.tmp / "l.tar.gz", {"app/ok": b"x"},
+                               symlinks={"app/link": "../victim", "app/inner": "ok"})
+        with self.assertRaises(InstallError) as ctx:
+            installer.install_archive(archive, self.target)
+        self.assertIn("link", str(ctx.exception))
+        self.assertFalse(self.target.exists())
+        self.assertEqual(self.leftovers(), [])
+        # Links staying inside the app folder are fine.
+        ok = make_tarball(self.tmp / "ok.tar.gz", {"app/ok": b"x", "app/sub/f": b"y"},
+                          symlinks={"app/inner": "ok", "app/sub/up": "../ok"})
+        installer.install_archive(ok, self.target)
+        self.assertEqual((self.target / "sub" / "up").read_bytes(), b"x")
+
+    def test_archive_too_large_for_disk_rejected(self):
+        installer.install_archive(make_tarball(self.tmp / "1.tar.gz", {"app": b"1"}), self.target)
+        big = make_tarball(self.tmp / "big.tar.gz", {"app": b"x" * 1000})
+        usage = shutil._ntuple_diskusage(10**9, 0, installer.DISK_RESERVE + 999)
+        with mock.patch.object(installer.shutil, "disk_usage", return_value=usage), \
+                self.assertRaises(InstallError) as ctx:
+            installer.install_archive(big, self.target)
+        self.assertIn("disk space", str(ctx.exception))
+        self.assertEqual((self.target / "app").read_bytes(), b"1")
+        self.assertEqual(self.leftovers(), [])
 
     def test_absolute_member_is_kept_inside_target(self):
         archive = make_tarball(self.tmp / "abs.tar.gz", {"/tmp/tarseer-evil": b"x", "app": b"1"})

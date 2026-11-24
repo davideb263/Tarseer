@@ -81,6 +81,32 @@ class DesktopTest(unittest.TestCase):
         self.assertIn('Exec="/x/100%%full/%%u/bin/app"\n', text)
         self.assertIn("Path=/x/100%full/%u\n", text)  # no field codes outside Exec
 
+    def test_control_characters_never_reach_the_entry(self):
+        evil = "app\nX-Tarseer-App=other\nMimeType=x-scheme-handler/https;"
+        write_tree(self.dir, {evil: ELF, "app": ELF, "icon\n.png": PNG_256},
+                   executables=(evil, "app"))
+        self.assertEqual(desktop.rank_executables(self.dir, "app"), ["app"])
+        self.assertEqual(desktop.rank_icons(self.dir, "app"), [])
+        app = ManagedApp(id="a", name="A\nTerminal=true\x1b", repo="o/r", asset_pattern=".*",
+                         executable="app")
+        text = desktop.render_desktop_entry(app, self.dir)
+        self.assertIn("Name=A Terminal=true \n", text)
+        for field in ("executable", "icon"):
+            with self.subTest(field), self.assertRaises(ValueError):
+                desktop.render_desktop_entry(
+                    ManagedApp(id="a", name="A", repo="o/r", asset_pattern=".*",
+                               **{"executable": "app", field: evil}), self.dir)
+
+    def test_links_leading_outside_are_not_offered(self):
+        outside = write_tree(self.dir / "outside", {"other": ELF, "other.svg": b"<svg/>"},
+                             executables=("other",))
+        app_dir = write_tree(self.dir / "app", {"app": ELF}, executables=("app",))
+        (app_dir / "linked").symlink_to(outside / "other")
+        (app_dir / "linked.svg").symlink_to(outside / "other.svg")
+        (app_dir / "same").symlink_to("app")
+        self.assertEqual(desktop.rank_executables(app_dir, "linked"), ["app", "same"])
+        self.assertEqual(desktop.rank_icons(app_dir, "linked"), [])
+
     def test_write_and_remove_entry(self):
         app = ManagedApp(id="a", name="A", repo="o/r", asset_pattern=".*", executable="a")
         apps_dir = self.dir / "applications"

@@ -1,4 +1,5 @@
 import email.message
+import hashlib
 import io
 import json
 import os
@@ -49,6 +50,16 @@ class ConfigTest(unittest.TestCase):
             path.write_text("{nope")
             with self.assertRaises(config.ConfigError):
                 config.load_apps(path)
+
+    def test_invalid_app_ids_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "apps.json"
+            for bad in ("", "..", "../x", "a/b", "app.bak", ".hidden", "Caps", None):
+                with self.subTest(bad):
+                    path.write_text(json.dumps({"apps": [
+                        {"id": bad, "name": "A", "repo": "o/r", "asset_pattern": "x"}]}))
+                    with self.assertRaises(config.ConfigError):
+                        config.load_apps(path)
 
 
 def http_error(code, headers=None):
@@ -113,6 +124,55 @@ class GitHubTest(unittest.TestCase):
         self.assertIsNone(dl.get_header("Authorization"))
         github.set_token("   ")
         self.assertFalse(github.has_token())
+
+    def test_release_digest_parsed(self):
+        rel = github.release_from_json({"tag_name": "v1", "assets": [
+            {"name": "a", "browser_download_url": "https://d/a", "digest": "sha256:ab"},
+            {"name": "b", "browser_download_url": "https://d/b", "digest": None},
+        ]})
+        self.assertEqual([a.digest for a in rel.assets], ["sha256:ab", None])
+
+    def download_bytes(self, data, **kwargs):
+        body = io.BytesIO(data)
+        body.headers = {}
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(github, "_urlopen", return_value=body):
+            dest = Path(tmp) / "x"
+            github.download("https://d/x", dest, **kwargs)
+            return dest.read_bytes()
+
+    def test_download_verified_against_size_and_digest(self):
+        data = b"x" * (github.CHUNK + 10)
+        good = "sha256:" + hashlib.sha256(data).hexdigest().upper()
+        self.assertEqual(self.download_bytes(data, size=len(data), digest=good), data)
+        self.assertEqual(self.download_bytes(data, digest="md5:whatever"), data)  # unknown: skipped
+        for name, kwargs in {
+            "truncated": dict(size=len(data) + 1),
+            "too_long": dict(size=len(data) - 1),
+            "tampered": dict(digest="sha256:" + "0" * 64),
+        }.items():
+            with self.subTest(name), self.assertRaises(github.GitHubError):
+                self.download_bytes(data, **kwargs)
+
+    def test_only_https(self):
+        with self.assertRaises(github.GitHubError):
+            github.download("http://github.com/o/r/x.tar.gz", Path(os.devnull))
+        # The opener itself can't read local files either.
+        with self.assertRaises(urllib.error.URLError):
+            github._opener.open("file:///etc/hostname")
+
+    def test_redirects_https_only_and_token_stays_on_host(self):
+        handler = github._SafeRedirectHandler()
+        req = github._request(f"{github.API}/repos/o/r/releases/latest", "a", "ghp_secret")
+        follow = lambda url: handler.redirect_request(req, None, 301, "Moved", {}, url)  # noqa: E731
+        same = follow(f"{github.API}/repositories/1/releases/latest")
+        self.assertEqual(same.get_header("Authorization"), "Bearer ghp_secret")
+        other = follow("https://example.com/x")
+        self.assertIsNone(other.get_header("Authorization"))
+        self.assertEqual(other.get_header("User-agent"), github.USER_AGENT)
+        for insecure in ("http://api.github.com/x", "ftp://example.com/x", "file:///etc/passwd"):
+            with self.subTest(insecure), self.assertRaises(github.GitHubError):
+                follow(insecure)
 
     def test_rate_limit(self):
         body = json.dumps({"resources": {"core": {"limit": 5000, "remaining": 4999, "reset": 1700000000}}})

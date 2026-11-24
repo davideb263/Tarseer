@@ -40,6 +40,13 @@ then translations + Flathub as a "v1.0 readiness" release.
       arch, so it's offered on x86_64. Match arch tokens by prefix or add aliases.
 
 ## Done
+- [x] Fixes from the 2026-11-24 security review: symlinks escaping the install
+      dir after a single top-level folder is flattened are refused; file names
+      with control characters are never offered or written to a menu entry;
+      HTTPS-only opener that drops `Authorization` on cross-host redirects;
+      downloads checked against the asset's `size` and `sha256` digest; app ids
+      validated on load (an empty id made Remove delete all of `~/.local/opt`);
+      extraction stops before leaving less than 512 MiB free (commit: TBD).
 - [x] Fixes from the v0.1.0..v0.2.0 review: `selectable_assets` test was never
       collected; rate limit / rejected token errors from a check are one alert,
       not a toast per app; rows no longer stay "Queued" after a details-dialog

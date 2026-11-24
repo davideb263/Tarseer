@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 
@@ -32,6 +33,15 @@ class Paths:
             applications_dir=home / ".local" / "share" / "applications",
             config_file=config_home / "tarseer" / "apps.json",
         )
+
+
+# What slugify() produces: also the folder and .desktop name, so never "",
+# "..", a path, or a name ending in ".bak"/".swap".
+_ID_RE = re.compile(r"[a-z0-9][a-z0-9-]*")
+
+
+def is_valid_id(app_id: object) -> bool:
+    return isinstance(app_id, str) and _ID_RE.fullmatch(app_id) is not None
 
 
 @dataclass
@@ -64,6 +74,7 @@ class Asset:
     name: str
     url: str
     size: int = 0
+    digest: str | None = None  # e.g. "sha256:<hex>"; GitHub omits it for old uploads
 
 
 @dataclass

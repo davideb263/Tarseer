@@ -46,16 +46,53 @@ def _recover(target: Path) -> None:
         shutil.rmtree(swap)  # every version is in place: just a stale copy
 
 
+# Space always left free on the install filesystem, so an archive bigger than
+# it unpacks to (or a decompression bomb) can't fill the disk.
+DISK_RESERVE = 512 * 1024 * 1024
+
+
+class _TooLarge(Exception):
+    pass
+
+
 def extract_tarball(archive: Path, dest: Path) -> None:
     """Extract any supported compression; refuse unsafe members (absolute
-    paths, '..', links escaping dest, device files)."""
+    paths, '..', links escaping dest, device files) and archives that would
+    leave less than DISK_RESERVE free."""
+    budget = shutil.disk_usage(dest).free - DISK_RESERVE
+    total = 0
+
+    def data_with_budget(member: tarfile.TarInfo, path: str) -> tarfile.TarInfo | None:
+        nonlocal total
+        member = tarfile.data_filter(member, path)
+        if member is not None and member.isreg():
+            total += member.size
+            if total > budget:
+                raise _TooLarge()
+        return member
+
     try:
         with tarfile.open(archive, mode="r:*") as tf:
-            tf.extractall(dest, filter="data")
+            tf.extractall(dest, filter=data_with_budget)
+    except _TooLarge:
+        raise InstallError("Not enough disk space to unpack the archive") from None
     except tarfile.FilterError as e:
         raise InstallError(f"Archive contains an unsafe file: {e}") from e
     except (tarfile.TarError, EOFError, OSError) as e:
         raise InstallError(f"Could not extract archive: {e}") from e
+
+
+def _check_links(root: Path) -> None:
+    """Refuse symlinks pointing outside `root`. Extraction only checked them
+    against the staging folder; once a single top-level folder becomes the
+    install dir, "app/link -> ../other" would point into a sibling app."""
+    real_root = root.resolve()
+    for dirpath, dirnames, filenames in os.walk(root):
+        for name in dirnames + filenames:
+            path = Path(dirpath, name)
+            if path.is_symlink() and not path.resolve().is_relative_to(real_root):
+                rel = path.relative_to(root).as_posix()
+                raise InstallError(f"Archive contains an unsafe file: {rel!r} links outside the app folder")
 
 
 def _content_root(extracted: Path) -> Path:
@@ -84,6 +121,7 @@ def install_archive(archive: Path, target: Path) -> bool:
         root = _content_root(extracted)
         if not any(root.iterdir()):
             raise InstallError("Archive is empty")
+        _check_links(root)
         # Owner must be able to enter/read the top folder whatever the archive says.
         root.chmod(0o755)
 

@@ -40,8 +40,6 @@ found while working.
 - [ ] "Check for updates" errors are still toasts (one alert per app would
       pile up), so long ones get cut off; the full text is only in the row's ⚠
       tooltip. Consider an "error details" action.
-- [ ] The "Open Folder" button has not been tested by Claude (it would open a
-      window on the user's desktop); verified manually: ☐
 - [ ] Changing the repository keeps the old release file pattern; if the new
       repo names its files differently, Update fails with "no file matches".
       Re-pick the file on repo change (ties in with editing the pattern).
@@ -57,3 +55,5 @@ found while working.
       release, half-registered installs, rollback launcher paths, rename
       recovery in install/rollback, disk work off the main loop, error alerts,
       `%%` in Exec (`8eb7670` … `40aa0af`).
+- [x] The "Open Folder" button has not been tested by Claude (it would open a
+      window on the user's desktop); verified manually: Test OK

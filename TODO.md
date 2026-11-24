@@ -39,7 +39,7 @@ v0.3 plan (agreed 2026-11-24):
        result and none has an update left. Clicking runs `app.show-updates`: opens
        the window and checks if this process has no results. `DBusActivatable=true`
        + D-Bus service file, so the click works after a login-only run exited.
-       Verified with faked GitHub + `dbus-monitor` (add / quiet / add / remove).
+       Verified with faked GitHub + `dbus-monitor` (add / quiet / add / remove) (`dd30b6d`).
 5. [ ] **Preferences "Updates" group.** Switch "Check for updates in the background"
        (opt-in, default off; calls `portal.request_autostart`), frequency dropdown
        (`check-interval-hours`: 0/6/12/24), "Last checked" (`last-check`); then

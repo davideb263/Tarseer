@@ -92,7 +92,7 @@ Planned for the next release: translations + Flathub as a "v1.0 readiness" relea
                update (progress, cancel, backup kept for rollback) and closes the details
                dialog. Verified with ripgrep 16.0.0 gnu → musl (static binary installed,
                gnu kept in `.bak`) and Later (pattern saved, files untouched) (`e13b523`).
-      8. [x] **Release 0.3.0.** Version bump, metainfo notes, README, merge to `main`, tag (RELEASE_HASH).
+      8. [x] **Release 0.3.0.** Version bump, metainfo notes, README, merge to `main`, tag (`5a9c5ec`).
 - [x] Fixes from the 2026-11-24 review of `dev`: a check or update finishing
       after its window closed no longer crashes (the window keeps its
       application) and still records `last-check`/`notified-tags`; a background

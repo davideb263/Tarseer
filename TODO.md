@@ -47,7 +47,7 @@ found while working.
       Re-pick the file on repo change (ties in with editing the pattern).
 
 ## Done
-- [x] Real app icon in `data/icons/` (commit pending).
+- [x] Real app icon in `data/icons/` (`a401572`, first draft with embedded bitmaps; replace with a proper vector SVG).
 - [x] v1: scaffold, core logic, main window, Add App dialog, details dialog
       (`f471394` … `ac25af6`).
 - [x] Menu entries named `<id>.desktop` with conflict detection and migration of

@@ -111,6 +111,15 @@ template $TarseerDetailsDialog: Adw.Dialog {
             styles [
               "property",
             ]
+
+            [suffix]
+            Button {
+              label: _("_Change…");
+              use-underline: true;
+              valign: center;
+              tooltip-text: _("Choose another file from the latest release");
+              clicked => $on_change_file();
+            }
           }
         }
 

@@ -35,8 +35,13 @@ parser.add_argument("--add-shots", metavar="PREFIX",
                     help="with --add: save PREFIX-repo.png, -asset.png, -progress.png, -review.png")
 parser.add_argument("--add-name", help="with --add: override the suggested name")
 parser.add_argument("--details", metavar="APP_ID", help="finally open the details dialog of APP_ID")
-parser.add_argument("--details-action", choices=["rollback", "remove-confirm", "remove"],
-                    help="with --details: press a button (remove-confirm only shows the alert)")
+parser.add_argument("--details-action", choices=["rollback", "remove-confirm", "remove", "change-file"],
+                    help="with --details: press a button (remove-confirm only shows the alert; "
+                         "change-file screenshots the file picker, then picks --pick-file)")
+parser.add_argument("--details-repo", metavar="REPO",
+                    help="with --details: change the repository (screenshots the file picker if one opens)")
+parser.add_argument("--picker-shot", metavar="PATH", help="screenshot of the release file picker")
+parser.add_argument("--pick-file", metavar="NAME", help="file to choose in the picker (default: preselected)")
 parser.add_argument("--details-shot", metavar="PATH", help="with --details: screenshot before the action")
 parser.add_argument("--details-bottom-shot", metavar="PATH",
                     help="with --details: also screenshot scrolled to the bottom")
@@ -143,7 +148,37 @@ def drive_details(win, then):
             dialog.on_remove()
         elif args.details_action == "remove":
             dialog._on_remove_response(None, "remove")
+        elif args.details_action == "change-file":
+            dialog.on_change_file()
+            return wait_for(picker, lambda: use_picker(after))
+        if args.details_repo:
+            dialog.repo_row.set_text(args.details_repo)
+            dialog.on_repo_apply()
+            # Either a picker opens (new file names) or the change just goes through.
+            return wait_for(lambda: picker() or not win.rows_by_id[args.details].busy,
+                            lambda: use_picker(after) if picker() else after())
+        after()
+
+    def after():
         GLib.timeout_add(1000, lambda: wait_idle(win, then) and False)
+
+    def picker():
+        from tarseer.ui.release_file_dialog import ReleaseFileDialog
+        d = dialog.get_root().get_visible_dialog() if dialog.get_root() else None
+        return d if isinstance(d, ReleaseFileDialog) else None
+
+    def use_picker(done):
+        def pick():
+            p = picker()
+            if args.picker_shot:
+                screenshot(win, args.picker_shot)
+            if args.pick_file:
+                for _row, check, asset in p.asset_list._rows:
+                    if asset.name == args.pick_file:
+                        check.set_active(True)
+            p.on_use()
+            done()
+        GLib.timeout_add(800, lambda: pick() and False)
 
     GLib.timeout_add(1200, lambda: act() and False)
 

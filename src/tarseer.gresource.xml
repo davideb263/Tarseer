@@ -5,5 +5,6 @@
     <file preprocess="xml-stripblanks" alias="ui/app_row.ui">tarseer/ui/app_row.ui</file>
     <file preprocess="xml-stripblanks" alias="ui/add_dialog.ui">tarseer/ui/add_dialog.ui</file>
     <file preprocess="xml-stripblanks" alias="ui/details_dialog.ui">tarseer/ui/details_dialog.ui</file>
+    <file preprocess="xml-stripblanks" alias="ui/release_file_dialog.ui">tarseer/ui/release_file_dialog.ui</file>
   </gresource>
 </gresources>

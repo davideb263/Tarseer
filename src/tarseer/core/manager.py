@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Callable
 
 from . import config, desktop, github, installer
-from .assets import match_asset
+from .assets import match_asset, validate_pattern
 from .desktop import DesktopConflictError
 from .installer import InstallError
 from .models import ManagedApp, Paths, Release
@@ -163,13 +163,25 @@ class AppManager:
             self._write_launcher(app)  # conflicts were already reported at install time
             self._save()
 
-    def set_repo(self, app: ManagedApp, repo: str) -> None:
-        """Point the app at another repository (e.g. the project was renamed).
+    def set_repo(self, app: ManagedApp, repo: str, asset_pattern: str | None = None) -> None:
+        """Point the app at another repository (e.g. the project was renamed),
+        optionally with a new release file pattern if the files are named differently.
         Callers should check the repository exists first (see fetch_latest)."""
         repo = github.parse_repo(repo)
+        if asset_pattern is not None:
+            validate_pattern(asset_pattern)
         with self._lock:
             app.repo = repo
+            if asset_pattern is not None:
+                app.asset_pattern = asset_pattern
             self._write_launcher(app)
+            self._save()
+
+    def set_asset_pattern(self, app: ManagedApp, asset_pattern: str) -> None:
+        """Choose which release file future updates download."""
+        validate_pattern(asset_pattern)
+        with self._lock:
+            app.asset_pattern = asset_pattern
             self._save()
 
     # ── Internals ────────────────────────────────────────────────────────────

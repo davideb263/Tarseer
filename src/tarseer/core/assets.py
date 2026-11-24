@@ -91,6 +91,25 @@ def candidate_assets(
     return [a for _, _, a in usable]
 
 
+def selectable_assets(
+    assets: list[Asset], machine: str | None = None, repo: str | None = None
+) -> list[Asset]:
+    """Files to offer the user: usable tarballs best first or, if nothing
+    looks right for this machine, every tarball so the user can decide."""
+    return candidate_assets(assets, machine, repo) or [a for a in assets if is_tarball(a.name)]
+
+
+def validate_pattern(pattern: str) -> str:
+    """Raise ValueError unless `pattern` is a usable regular expression."""
+    if not pattern.strip():
+        raise ValueError("The release file pattern cannot be empty")
+    try:
+        re.compile(pattern)
+    except re.error as e:
+        raise ValueError(f"Invalid release file pattern {pattern!r}: {e}") from e
+    return pattern
+
+
 def _version_from_tag(tag: str) -> str:
     """'v7.2.0' -> '7.2.0', 'release-1.4' -> '1.4', '2.4.2' -> '2.4.2'."""
     return re.sub(r"^[^0-9]*", "", tag)

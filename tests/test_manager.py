@@ -174,6 +174,28 @@ class ManagerTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             manager.set_repo(app, "not a repo")
 
+    def test_set_asset_pattern_and_repo_with_pattern(self):
+        manager = AppManager(self.paths)
+        app = self.new_app(manager)
+        manager.install(app, self.release("2.4.2"))
+        manager.set_asset_pattern(app, r"^sparrowwallet-[0-9.]+-aarch64\.tar\.gz$")
+        self.assertEqual(AppManager(self.paths).get("sparrow").asset_pattern,
+                         r"^sparrowwallet-[0-9.]+-aarch64\.tar\.gz$")
+        for bad in ("", "  ", "^foo(["):
+            with self.assertRaises(ValueError):
+                manager.set_asset_pattern(app, bad)
+        manager.set_repo(app, "someone/sparrow-fork", r"^fork-[0-9.]+\.tar\.gz$")
+        reloaded = AppManager(self.paths).get("sparrow")
+        self.assertEqual((reloaded.repo, reloaded.asset_pattern),
+                         ("someone/sparrow-fork", r"^fork-[0-9.]+\.tar\.gz$"))
+        # An invalid pattern changes nothing, not even the repository.
+        with self.assertRaises(ValueError):
+            manager.set_repo(app, "other/repo", "(")
+        self.assertEqual(app.repo, "someone/sparrow-fork")
+        # Without a pattern, the old one is kept.
+        manager.set_repo(app, "other/repo")
+        self.assertEqual(app.asset_pattern, r"^fork-[0-9.]+\.tar\.gz$")
+
     def foreign_entry(self, name):
         self.paths.applications_dir.mkdir(parents=True, exist_ok=True)
         path = self.paths.applications_dir / name

@@ -5,6 +5,13 @@ Ideas and known issues for after v1. Keep this file current: move items to
 found while working.
 
 ## Next up
+v0.2 "Update all, safely", in this order:
+1. "Update All" button (sequential, per-app progress, one failure doesn't stop the rest).
+2. Cancel a running download.
+3. Optional GitHub token in the keyring.
+
+Planned for v0.3: background checks + notifications (needs the token);
+then translations + Flathub as a "v1.0 readiness" release.
 
 ## Features
 - [ ] **Background update checks + notifications.** Check periodically (or at
@@ -20,8 +27,9 @@ found while working.
 - [ ] **`StartupWMClass` detection/setting**, so running apps get the right icon
       in the dash instead of a generic or duplicate one (especially Java apps
       like Sparrow).
-- [ ] **Edit the release file pattern** in the details dialog (currently
-      read-only), e.g. by picking a file again from the latest release.
+- [ ] **"Reinstall now" after changing the release file.** A new file is only
+      used from the next update; if the installed tag is already the latest,
+      offer to reinstall it (e.g. switching from the gnu to the musl build).
 - [ ] **Pre-release channel** per app (use `/releases` instead of `/releases/latest`).
 - [ ] **Adopt an existing install** (point at a folder + tell Tarseer its version)
       instead of reinstalling.
@@ -37,11 +45,14 @@ found while working.
 - [ ] "Check for updates" errors are still toasts (one alert per app would
       pile up), so long ones get cut off; the full text is only in the row's ⚠
       tooltip. Consider an "error details" action.
-- [ ] Changing the repository keeps the old release file pattern; if the new
-      repo names its files differently, Update fails with "no file matches".
-      Re-pick the file on repo change (ties in with editing the pattern).
+- [ ] `riscv64gc` (ripgrep's name for riscv64) isn't recognized as a foreign
+      arch, so it's offered on x86_64. Match arch tokens by prefix or add aliases.
+- [ ] The picker's "cancel" path on repository change (close it → "Repository
+      not changed") was not exercised by `dev_screenshot.py`; test manually.
 
 ## Done
+- [x] Re-pick the release file from the details dialog ("Change…"), and pick it
+      again when a new repository names its files differently (COMMIT).
 - [x] Homepage, bug tracker and source URLs in the metainfo and About dialog (`d83cfa4`).
 - [x] Real app icon in `data/icons/` (`a401572` first draft; vector SVG in `4df7f2e`).
 - [x] v1: scaffold, core logic, main window, Add App dialog, details dialog

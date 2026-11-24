@@ -1,0 +1,33 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $TarseerReleaseFileDialog: Adw.Dialog {
+  title: _("Choose Release File");
+  content-width: 500;
+  content-height: 560;
+
+  child: Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar {}
+
+    content: Adw.PreferencesPage {
+      Adw.PreferencesGroup assets_group {
+        title: _("Release File");
+      }
+
+      Adw.PreferencesGroup {
+        Button {
+          label: _("_Use This File");
+          use-underline: true;
+          halign: center;
+          clicked => $on_use();
+
+          styles [
+            "pill",
+            "suggested-action",
+          ]
+        }
+      }
+    };
+  };
+}

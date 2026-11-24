@@ -5,10 +5,12 @@ from pathlib import Path
 from gi.repository import Adw, Gio, GLib, GObject, Gtk
 
 from ..core import github
+from ..core.assets import match_asset, pattern_from_name
 from ..core.manager import AppManager
-from ..core.models import ManagedApp
+from ..core.models import ManagedApp, Release
 from .alerts import show_error, show_launcher_warnings
 from .launcher_choices import LauncherChoices
+from .release_file_dialog import ReleaseFileDialog
 from .tasks import run_task
 
 
@@ -143,14 +145,38 @@ class DetailsDialog(Adw.Dialog):
             return
         self.repo_row.set_sensitive(False)
 
-        def check_and_set():
+        def on_success(release: Release):
             # Only accept repositories that exist and have releases.
-            release = self.manager.fetch_latest(repo)
-            self.manager.set_repo(self.app, repo)
-            return release
-
-        def on_success(release):
             self.repo_row.set_sensitive(True)
+            self._finish()
+            if match_asset(release.assets, self.app.asset_pattern):
+                self._commit_repo(repo, release, None)
+                return
+            # The new repository names its files differently: pick the file again.
+            message = _("No file in this repository's latest release matches the one "
+                        "{name} used before. Choose the file to download from now on.").format(
+                            name=self.app.name)
+            self._choose_file(release, repo, message,
+                              chosen=lambda pattern: self._commit_repo(repo, release, pattern),
+                              cancelled=self._repo_not_changed)
+
+        def on_error(error: Exception):
+            self.repo_row.set_sensitive(True)
+            self._finish()
+            show_error(self, _("Repository Not Changed"), error)
+
+        run_task(self.manager.fetch_latest, repo, on_success=on_success, on_error=on_error)
+
+    def _repo_not_changed(self) -> None:
+        self.repo_row.set_text(self.app.repo)
+        self.toast(_("Repository not changed"))
+
+    def _commit_repo(self, repo: str, release: Release, pattern: str | None) -> None:
+        if not self._start():
+            self.repo_row.set_text(self.app.repo)
+            return
+
+        def on_success(_result):
             self._finish()
             self.refresh()
             self.toast(_("Repository changed"))
@@ -158,11 +184,62 @@ class DetailsDialog(Adw.Dialog):
             self.emit("app-changed", self.app, release)
 
         def on_error(error: Exception):
-            self.repo_row.set_sensitive(True)
             self._finish()
+            self.repo_row.set_text(self.app.repo)
             show_error(self, _("Repository Not Changed"), error)
 
-        run_task(check_and_set, on_success=on_success, on_error=on_error)
+        run_task(self.manager.set_repo, self.app, repo, pattern,
+                 on_success=on_success, on_error=on_error)
+
+    # ── Release file ─────────────────────────────────────────────────────────
+    @Gtk.Template.Callback()
+    def on_change_file(self, *_args) -> None:
+        if not self._start():
+            return
+        repo = self.app.repo
+
+        def on_success(release: Release):
+            self._finish()
+            self._choose_file(release, repo, None,
+                              chosen=lambda pattern: self._commit_pattern(pattern, release),
+                              cancelled=lambda: None)
+
+        def on_error(error: Exception):
+            self._finish()
+            show_error(self, _("Could Not Look Up Releases"), error)
+
+        run_task(self.manager.fetch_latest, repo, on_success=on_success, on_error=on_error)
+
+    def _choose_file(self, release: Release, repo: str, message: str | None,
+                     chosen, cancelled) -> None:
+        """Let the user pick a file of `release`; calls chosen(pattern) or cancelled()."""
+        current = match_asset(release.assets, self.app.asset_pattern)
+        picker = ReleaseFileDialog(release, repo, current, message)
+        if not picker.has_files:
+            show_error(self, _("No Usable Files"),
+                       _("Release {tag} of {repo} has no tarball files.").format(tag=release.tag, repo=repo))
+            cancelled()
+            return
+        picker.connect("file-chosen", lambda _d, asset: chosen(pattern_from_name(asset.name, release.tag)))
+        picker.connect("cancelled", lambda _d: cancelled())
+        picker.present(self)
+
+    def _commit_pattern(self, pattern: str, release: Release) -> None:
+        if pattern == self.app.asset_pattern or not self._start():
+            return
+
+        def on_success(_result):
+            self._finish()
+            self.refresh()
+            self.toast(_("Release file changed. It is used from the next update."))
+            self.emit("app-changed", self.app, release)
+
+        def on_error(error: Exception):
+            self._finish()
+            show_error(self, _("Release File Not Changed"), error)
+
+        run_task(self.manager.set_asset_pattern, self.app, pattern,
+                 on_success=on_success, on_error=on_error)
 
     # ── Version ──────────────────────────────────────────────────────────────
     @Gtk.Template.Callback()

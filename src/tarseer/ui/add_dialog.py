@@ -6,10 +6,11 @@ from pathlib import Path
 from gi.repository import Adw, GLib, GObject, Gtk
 
 from ..core import github
-from ..core.assets import candidate_assets, is_tarball, pattern_from_name
+from ..core.assets import pattern_from_name
 from ..core.manager import AppManager
-from ..core.models import Asset, ManagedApp, Release
+from ..core.models import ManagedApp, Release
 from .alerts import show_error, show_launcher_warnings
+from .asset_list import AssetList
 from .launcher_choices import LauncherChoices
 from .tasks import ThrottledProgress, run_task
 
@@ -53,7 +54,7 @@ class AddDialog(Adw.Dialog):
         self.repo: str | None = None
         self.release: Release | None = None
         self.app: ManagedApp | None = None
-        self._asset_rows: list[tuple[Adw.ActionRow, Gtk.CheckButton, Asset]] = []
+        self.asset_list = AssetList(self.assets_group)
         self.launcher = LauncherChoices(self.exec_row, self.icon_row)
 
     def toast(self, message: str) -> None:
@@ -99,33 +100,12 @@ class AddDialog(Adw.Dialog):
 
     # ── Step 2: name + file ──────────────────────────────────────────────────
     def _show_assets(self, repo: str, release: Release) -> None:
-        candidates = candidate_assets(release.assets, repo=repo)
-        if not candidates:
-            # Nothing obviously for this machine: offer every tarball and let the user decide.
-            candidates = [a for a in release.assets if is_tarball(a.name)]
-        if not candidates:
+        if not self.asset_list.fill(release, repo):
             self.toast(_("Release {tag} of {repo} has no tarball files").format(tag=release.tag, repo=repo))
             return
-
         self.repo, self.release = repo, release
-        for row, _check, _asset in self._asset_rows:
-            self.assets_group.remove(row)
-        self._asset_rows = []
-
         self.assets_group.set_description(
             _("From release {tag}. The best match for this computer is preselected.").format(tag=release.tag))
-        group = None
-        for asset in candidates:
-            check = Gtk.CheckButton(group=group, valign=Gtk.Align.CENTER)
-            group = group or check
-            row = Adw.ActionRow(title=asset.name, use_markup=False, activatable_widget=check)
-            if asset.size:
-                row.set_subtitle(GLib.format_size(asset.size))
-            row.add_prefix(check)
-            self.assets_group.add(row)
-            self._asset_rows.append((row, check, asset))
-        self._asset_rows[0][1].set_active(True)
-
         self.name_entry.set_text(_default_name(repo))
         self.nav.push_by_tag("asset")
 
@@ -141,7 +121,7 @@ class AddDialog(Adw.Dialog):
     @Gtk.Template.Callback()
     def on_install(self, *_args) -> None:
         name = self.name_entry.get_text().strip()
-        asset = next(a for _row, check, a in self._asset_rows if check.get_active())
+        asset = self.asset_list.selected()
         release = self.release
         app = ManagedApp(
             id=self.manager.unique_id(name),

@@ -30,7 +30,7 @@ v0.3 plan (agreed 2026-11-24):
        goes on without the token; errors only logged. The app now owns the manager
        and token loading; an open window refreshes after a background check.
        `ui/portal.py` wraps the Background portal (autostart + status); calling it
-       to register autostart is step 5.
+       to register autostart is step 5 (`7c6a19e`).
 4. [ ] **Notifications.** One `Gio.Notification` per run listing the apps; clicking
        it only opens the window (no action buttons). Notify only about tags not
        notified before; withdraw it once updates are installed.

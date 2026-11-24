@@ -43,7 +43,7 @@ then translations + Flathub as a "v1.0 readiness" release.
 
 ## Done
 - [x] Optional GitHub token in Preferences, validated against GitHub, stored
-      with libsecret (Secret portal), sent only to api.github.com (COMMIT).
+      with libsecret (Secret portal), sent only to api.github.com (`a312cd0`).
       Saving a real token was tested with a faked GitHub reply only; test
       manually with a real token.
 - [x] Cancel a running download: ✕ next to a row's progress bar, Cancel on the

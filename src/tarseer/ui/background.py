@@ -60,6 +60,9 @@ class BackgroundService:
         if not app_settings().get_boolean("background-checks"):
             _log("background checks are off, nothing to do")
             return False
+        if self.app.manager is None:
+            _log(f"not checking: {self.app.config_error}")
+            return False
         interval = interval_seconds()
         self._login_only = interval == 0
         self._retries_left = LOGIN_RETRIES
@@ -74,6 +77,8 @@ class BackgroundService:
         turned background checks on). Does nothing for "at login only"."""
         if self.running or not app_settings().get_boolean("background-checks"):
             return
+        if self.app.manager is None:
+            return  # the config couldn't be read: nothing to check
         if interval_seconds() == 0:
             return
         self._login_only = False
@@ -125,7 +130,12 @@ class BackgroundService:
 
     def _on_tick(self) -> None:
         interval = interval_seconds()
-        if interval and check_due(app_settings().get_int64("last-check"), interval, time.time()):
+        if interval == 0 or not app_settings().get_boolean("background-checks"):
+            # Changed behind Preferences' back (e.g. with gsettings): follow it.
+            _log("periodic checks turned off, stopping")
+            self.stop()
+            return
+        if check_due(app_settings().get_int64("last-check"), interval, time.time()):
             self._run_scheduled()
         else:
             self._schedule_tick()

@@ -9,7 +9,7 @@ import tempfile
 import threading
 from dataclasses import asdict
 from pathlib import Path
-from typing import Iterable
+from typing import Callable, Iterable
 
 from .models import Asset, Release
 
@@ -21,12 +21,26 @@ class ReleaseCache:
 
     It's a cache: an unreadable file starts it empty, and a failed write only
     means the next check sends full requests.
+
+    The file is read on first use, not on creation, so that disk work happens
+    in the worker thread doing the first lookup. `keep()`, if given, is then
+    asked for the repositories still in use: the others are forgotten.
     """
 
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, keep: Callable[[], Iterable[str]] | None = None):
         self.path = path
         self._lock = threading.Lock()
-        self._releases: dict[str, Release] = self._load()
+        self._keep = keep
+        self._data: dict[str, Release] | None = None
+
+    @property
+    def _releases(self) -> dict[str, Release]:
+        """The cached releases, read from disk the first time. Call with the lock held."""
+        if self._data is None:
+            self._data = self._load()
+            if self._keep is not None:
+                self._prune(set(self._keep()))
+        return self._data
 
     def get(self, repo: str) -> Release | None:
         with self._lock:
@@ -45,11 +59,15 @@ class ReleaseCache:
         """Forget repositories no managed app uses any more."""
         keep = set(repos)
         with self._lock:
-            stale = [r for r in self._releases if r not in keep]
-            if stale:
-                for repo in stale:
-                    del self._releases[repo]
-                self._save()
+            self._releases  # noqa: B018 - load first, so that _prune sees the file
+            self._prune(keep)
+
+    def _prune(self, keep: set[str]) -> None:
+        stale = [r for r in self._data if r not in keep]
+        if stale:
+            for repo in stale:
+                del self._data[repo]
+            self._save()
 
     def _load(self) -> dict[str, Release]:
         try:
@@ -62,7 +80,7 @@ class ReleaseCache:
 
     def _save(self) -> None:
         payload = {"version": CACHE_VERSION,
-                   "releases": {repo: asdict(r) for repo, r in self._releases.items()}}
+                   "releases": {repo: asdict(r) for repo, r in self._data.items()}}
         try:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             fd, tmp = tempfile.mkstemp(dir=self.path.parent, prefix=".releases-", suffix=".json")

@@ -39,8 +39,8 @@ class AppManager:
         }
         # Latest check result per app id (this session only).
         self._checks: dict[str, CheckResult] = {}
-        self._release_cache = ReleaseCache(self.paths.cache_file)
-        self._release_cache.keep_only(a.repo for a in self._apps.values())
+        # Read (and stale repositories pruned) on the first lookup, in a worker thread.
+        self._release_cache = ReleaseCache(self.paths.cache_file, keep=self._repos_in_use)
         # Messages for the UI about menu entries that could not be set up.
         self.startup_warnings: list[str] = self._sync_launchers()
 
@@ -91,6 +91,10 @@ class AppManager:
         return [a for a in self.apps
                 if (c := checks.get(a.id)) and c.release and self.update_available(a, c.release)]
 
+    def _repos_in_use(self) -> list[str]:
+        with self._lock:
+            return [a.repo for a in self._apps.values()]
+
     # ── Network ──────────────────────────────────────────────────────────────
     def fetch_latest(self, repo: str) -> Release:
         """Latest release of `repo`. Asks GitHub "changed since?" when an earlier
@@ -132,11 +136,12 @@ class AppManager:
         fatal_lock = threading.Lock()
 
         def check(app: ManagedApp) -> CheckResult:
+            repo = app.repo  # set_repo may change it while the request is out
             with fatal_lock:
                 error = fatal[0] if fatal else None
             if error is None:
                 try:
-                    result = CheckResult(release=self.fetch_latest(app.repo), checked_at=time.time())
+                    result = CheckResult(release=self.fetch_latest(repo), checked_at=time.time())
                 except Exception as e:  # noqa: BLE001 - reported per app
                     if isinstance(e, (github.RateLimitError, github.TokenRejectedError)):
                         with fatal_lock:
@@ -145,7 +150,10 @@ class AppManager:
             else:
                 result = CheckResult(error=error, checked_at=time.time())
             with self._lock:
-                if app.id in self._apps:  # not removed meanwhile
+                # Not removed meanwhile, nor moved to another repository (whose
+                # release set_repo's caller already recorded).
+                current = self._apps.get(app.id)
+                if current is not None and current.repo == repo:
                     self._checks[app.id] = result
             if on_result is not None:
                 on_result(app, result)
@@ -208,12 +216,18 @@ class AppManager:
                 raise github.CancelledError()
             if extracting is not None:
                 extracting()
-            made_backup = installer.install_archive(archive, target)
+            # Reinstalling the same version (e.g. another release file): keep
+            # the backup, which holds an older version than the current files.
+            reinstall = app.id in self._apps and app.installed_tag == release.tag
+            new_backup = installer.install_archive(archive, target, keep_backup=reinstall)
         finally:
             archive.unlink(missing_ok=True)
 
         with self._lock:
-            app.previous_tag = app.installed_tag if made_backup else None
+            if new_backup:
+                app.previous_tag = app.installed_tag
+            elif not self.can_rollback(app):
+                app.previous_tag = None
             app.installed_tag = release.tag
             self._revalidate_launcher_paths(app)
             try:

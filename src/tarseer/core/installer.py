@@ -105,11 +105,14 @@ def _content_root(extracted: Path) -> Path:
     return extracted
 
 
-def install_archive(archive: Path, target: Path) -> bool:
+def install_archive(archive: Path, target: Path, keep_backup: bool = False) -> bool:
     """Replace `target` with the contents of `archive`.
 
-    The current install (if any) becomes the backup. On any failure the
-    current install and backup are left untouched. Returns True if a backup was made.
+    The current install (if any) becomes the backup, unless `keep_backup` and
+    there already is one: then the backup stays and the current install is
+    discarded (a reinstall of the same version shouldn't lose the older one).
+    On any failure the current install and backup are left untouched.
+    Returns True if the backup changed (a new one was made).
     """
     target.parent.mkdir(parents=True, exist_ok=True)
     _recover(target)
@@ -127,25 +130,32 @@ def install_archive(archive: Path, target: Path) -> bool:
 
         backup = backup_path(target)
         had_old = target.exists()
-        # The old backup waits in staging (deleted with it) until the new
+        replace_backup = had_old and not (keep_backup and backup.exists())
+        # What gets replaced waits in staging (deleted with it) until the new
         # version is in place, so a failed move can restore everything.
         old_backup = staging / "old-backup"
-        moved_backup = moved_current = False
+        old_current = staging / "old-current"
+        moved_backup = moved_current = discarded_current = False
         try:
-            if had_old:
+            if replace_backup:
                 if backup.exists():
                     os.rename(backup, old_backup)
                     moved_backup = True
                 os.rename(target, backup)
                 moved_current = True
+            elif had_old:
+                os.rename(target, old_current)
+                discarded_current = True
             os.rename(root, target)
         except OSError as e:
             if moved_current:
                 os.rename(backup, target)
             if moved_backup:
                 os.rename(old_backup, backup)
+            if discarded_current:
+                os.rename(old_current, target)
             raise InstallError(f"Could not move new version into place: {e}") from e
-        return had_old
+        return replace_backup
     finally:
         shutil.rmtree(staging, ignore_errors=True)
 

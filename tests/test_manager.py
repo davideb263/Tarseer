@@ -129,6 +129,29 @@ class ManagerTest(unittest.TestCase):
         entry = (self.paths.applications_dir / "sparrow.desktop").read_text()
         self.assertIn(str(self.paths.install_root / "sparrow" / "bin" / "Sparrow"), entry)
 
+    def test_reinstall_keeps_the_older_backup(self):
+        manager = AppManager(self.paths)
+        app = self.new_app(manager)
+        manager.install(app, self.release("2.4.2"))
+        manager.install(app, self.release("2.5.0"))
+        # Same version again (e.g. another release file): 2.4.2 stays the rollback target.
+        manager.install(app, self.release("2.5.0", extra={"Sparrow/NEW": b"x"}))
+        self.assertEqual((app.installed_tag, app.previous_tag), ("2.5.0", "2.4.2"))
+        self.assertTrue((self.paths.install_root / "sparrow" / "NEW").exists())
+        self.assertFalse((self.paths.install_root / "sparrow.bak" / "NEW").exists())
+        self.assertEqual(sorted(p.name for p in self.paths.install_root.iterdir()),
+                         ["sparrow", "sparrow.bak"])
+        manager.rollback(app)
+        self.assertEqual((app.installed_tag, app.previous_tag), ("2.4.2", "2.5.0"))
+
+    def test_reinstall_without_backup_makes_one(self):
+        manager = AppManager(self.paths)
+        app = self.new_app(manager)
+        manager.install(app, self.release("2.4.2"))
+        manager.install(app, self.release("2.4.2"))
+        self.assertEqual((app.installed_tag, app.previous_tag), ("2.4.2", "2.4.2"))
+        self.assertTrue(manager.can_rollback(app))
+
     def test_rollback_to_unrecorded_version(self):
         manager = AppManager(self.paths)
         app = self.new_app(manager)
@@ -444,8 +467,24 @@ class CheckUpdatesTest(unittest.TestCase):
         self.replies["someone/else"] = Release(tag="v1", etag='"x"')
         self.manager.fetch_latest("someone/else")
         self.assertTrue(self.paths.cache_file.exists())
-        AppManager(self.paths)  # startup prunes it
+        manager = AppManager(self.paths)
+        self.assertIn("someone/else", self.paths.cache_file.read_text())  # not read at startup
+        manager.fetch_latest("owner/app0")  # the first lookup prunes it
         self.assertNotIn("someone/else", self.paths.cache_file.read_text())
+
+    def test_check_result_for_an_old_repo_is_dropped(self):
+        app = self.manager.get("app0")
+
+        def slow_old_repo(repo, cached=None):
+            # The user moves the app to another repository while this request is out.
+            self.manager.set_repo(app, "owner/new")
+            self.manager.record_release(app.id, Release(tag="v2"))
+            return Release(tag="v9")
+
+        with mock.patch.object(github, "get_latest_release", side_effect=slow_old_repo):
+            results = self.manager.check_updates([app])
+        self.assertEqual(results["app0"].release.tag, "v9")  # still reported...
+        self.assertEqual(self.manager.last_check("app0").release.tag, "v2")  # ...not stored
 
     def test_quota(self):
         def limit(remaining):

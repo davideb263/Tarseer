@@ -257,13 +257,18 @@ class DetailsDialog(Adw.Dialog):
                  on_success=on_success, on_error=on_error)
 
     def _offer_reinstall(self, release: Release) -> None:
-        alert = Adw.AlertDialog(
-            heading=_("Reinstall {name} Now?").format(name=self.app.name),
-            body=_("{tag} is already the latest version, so the new release file would only "
-                   "be used from the next update.\n\nReinstalling downloads it now. The current "
-                   "files are kept as the previous version, so you can roll back to them.")
-                 .format(tag=release.tag),
-        )
+        body = _("{tag} is already the latest version, so the new release file would only "
+                 "be used from the next update.").format(tag=release.tag)
+        if self.manager.can_rollback(self.app):
+            # Reinstalling keeps the backup: it holds an older version than the current files.
+            previous = self.app.previous_tag or _("the previous version")
+            body += "\n\n" + _("Reinstalling downloads it now and replaces the current files. "
+                               "You can still roll back to {previous}.").format(previous=previous)
+        else:
+            body += "\n\n" + _("Reinstalling downloads it now. The current files are kept as "
+                               "the previous version, so you can roll back to them.")
+        alert = Adw.AlertDialog(heading=_("Reinstall {name} Now?").format(name=self.app.name),
+                                body=body)
         alert.add_response("later", _("_Later"))
         alert.add_response("reinstall", _("_Reinstall"))
         alert.set_response_appearance("reinstall", Adw.ResponseAppearance.SUGGESTED)

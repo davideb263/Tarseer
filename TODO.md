@@ -96,6 +96,18 @@ v0.3 plan (agreed 2026-11-24):
       token errors are already alerts, shown once per check.)
 
 ## Done
+- [x] Fixes from the 2026-11-24 review of `dev`: a check or update finishing
+      after its window closed no longer crashes (the window keeps its
+      application) and still records `last-check`/`notified-tags`; a background
+      check no longer stores a release from an app's old repository after
+      `set_repo`; a fixed `apps.json` is reread on the next activation, and no
+      resident service runs without a config; launcher warnings from startup show
+      once per run, not in every reopened window; armv6l is its own architecture
+      (armv6/arm/armel), and on armv7l those builds rank below armv7 ones;
+      reinstalling the same tag keeps the older backup; the periodic service
+      stops if the interval is set to 0 (or checks turned off) outside
+      Preferences; the release cache is read and pruned on the first lookup, in
+      a worker thread, not at startup (COMMIT).
 - [x] v0.2.1: review and security review fixes; version bump and metainfo
       release notes (`abcf182`).
 - [x] Fixes from the 2026-11-24 security review: symlinks escaping the install

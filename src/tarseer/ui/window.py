@@ -26,6 +26,12 @@ class TarseerWindow(Adw.ApplicationWindow):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        # Kept: once destroyed, get_application() returns None, but a check or
+        # update still running reports to this window (the app runs on when
+        # background checks keep it alive) and must reach the application.
+        self._app = self.get_application()
+        self._destroyed = False
+        self.connect("destroy", self._on_destroy)
 
         # Remember the window size between launches.
         self.settings = app_settings()
@@ -36,12 +42,12 @@ class TarseerWindow(Adw.ApplicationWindow):
         self.check_action = Gio.SimpleAction.new("check-updates", None)
         self.check_action.connect("activate", lambda *_: self.check_updates())
         self.add_action(self.check_action)
-        self.get_application().set_accels_for_action("win.check-updates", ["<primary>r", "F5"])
+        self._app.set_accels_for_action("win.check-updates", ["<primary>r", "F5"])
 
         self.add_app_action = Gio.SimpleAction.new("add-app", None)
         self.add_app_action.connect("activate", lambda *_: self.open_add_dialog())
         self.add_action(self.add_app_action)
-        self.get_application().set_accels_for_action("win.add-app", ["<primary>n"])
+        self._app.set_accels_for_action("win.add-app", ["<primary>n"])
 
         self.update_all_action = Gio.SimpleAction.new("update-all", None)
         self.update_all_action.connect("activate", lambda *_: self.update_all())
@@ -53,7 +59,7 @@ class TarseerWindow(Adw.ApplicationWindow):
         self.preferences_action = Gio.SimpleAction.new("preferences", None)
         self.preferences_action.connect("activate", lambda *_: self.open_preferences())
         self.add_action(self.preferences_action)
-        self.get_application().set_accels_for_action("win.preferences", ["<primary>comma"])
+        self._app.set_accels_for_action("win.preferences", ["<primary>comma"])
 
         self.rows: list[AppRow] = []
         self.rows_by_id: dict[str, AppRow] = {}
@@ -68,7 +74,7 @@ class TarseerWindow(Adw.ApplicationWindow):
         self._check_after_token = False
         self._preferences: PreferencesDialog | None = None
 
-        app = self.get_application()
+        app = self._app
         self.manager: AppManager | None = app.manager
         if self.manager is None:
             # The config couldn't be read (the app keeps no manager: saving would overwrite it).
@@ -85,7 +91,19 @@ class TarseerWindow(Adw.ApplicationWindow):
         self.populate()
         if self.manager.startup_warnings:
             # Wait until the window is on screen so the alert has a parent to attach to.
-            self.connect("map", lambda *_: show_launcher_warnings(self, self.manager.startup_warnings))
+            self.connect("map", self._show_startup_warnings)
+
+    def _show_startup_warnings(self, *_args) -> None:
+        # Once per run, not again in every window reopened while running in the background.
+        warnings, self.manager.startup_warnings = self.manager.startup_warnings, []
+        show_launcher_warnings(self, warnings)
+
+    def _show_launcher_warnings(self, warnings: list[str]) -> None:
+        if not self._destroyed:
+            show_launcher_warnings(self, warnings)
+
+    def _on_destroy(self, *_args) -> None:
+        self._destroyed = True
 
     def _on_token_loaded(self, _app) -> None:
         if self._preferences is not None:
@@ -96,7 +114,7 @@ class TarseerWindow(Adw.ApplicationWindow):
 
     # ── Preferences ──────────────────────────────────────────────────────────
     def open_preferences(self) -> None:
-        app = self.get_application()
+        app = self._app
         dialog = self._preferences = PreferencesDialog(self.manager, token_loading=app.token_loading)
         dialog.connect("token-changed", lambda *_: setattr(app, "token_set_by_user", True))
         dialog.connect("closed", self._on_preferences_closed)
@@ -117,7 +135,7 @@ class TarseerWindow(Adw.ApplicationWindow):
                 row = AppRow(self.manager, app)
                 row.connect("notify-user", lambda _row, msg: self.toast(msg))
                 row.connect("show-error", lambda _row, heading, body: self._show_row_error(heading, body))
-                row.connect("launcher-warnings", lambda _row, w: show_launcher_warnings(self, w))
+                row.connect("launcher-warnings", lambda _row, w: self._show_launcher_warnings(w))
                 row.connect("refreshed", lambda _row: self._sync_actions())
             self.rows_by_id[app.id] = row
             self.list_box.append(row)
@@ -160,7 +178,7 @@ class TarseerWindow(Adw.ApplicationWindow):
             self.update_all_button.add_css_class("suggested-action")
         self.stop_updates_action.set_enabled(updating_all and not self._update_stopped)
         if not updates:
-            self.get_application().updates_changed()
+            self._app.updates_changed()
 
     # ── Add app ──────────────────────────────────────────────────────────────
     def open_add_dialog(self) -> None:
@@ -202,22 +220,22 @@ class TarseerWindow(Adw.ApplicationWindow):
         return True
 
     def toast(self, message: str) -> None:
-        if self._first_time_this_check(message):
+        if not self._destroyed and self._first_time_this_check(message):
             self.toast_overlay.add_toast(Adw.Toast(title=message, use_markup=False))
 
     def _show_row_error(self, heading: str, body: str) -> None:
         # Keyed on the heading: rate limit bodies differ in the minutes left.
-        if self._first_time_this_check(heading):
+        if not self._destroyed and self._first_time_this_check(heading):
             show_error(self, heading, body)
 
     # ── Check for updates ────────────────────────────────────────────────────
     def check_updates(self) -> None:
         if self._checking or not self.rows or self._update_queue is not None:
             return
-        if self.get_application().background.checking:
+        if self._app.background.checking:
             self.toast(_("Already checking for updates in the background"))
             return
-        if self.get_application().token_loading:
+        if self._app.token_loading:
             self._check_after_token = True  # use the saved token, not the 60/hour limit
             return
         # Rows busy with another operation (e.g. in a details dialog) are skipped.
@@ -257,12 +275,13 @@ class TarseerWindow(Adw.ApplicationWindow):
                 row.end_check()
         self._checking = False
         self._sync_actions()
-        show_error(self, _("Could Not Check for Updates"), error)
+        if not self._destroyed:
+            show_error(self, _("Could Not Check for Updates"), error)
 
     def _on_check_finished(self, results: dict[str, CheckResult]) -> None:
         self._checking = False
         self._sync_actions()
-        self.get_application().check_finished(results, background=False)
+        self._app.check_finished(results, background=False)
         if self._check_errors:
             return  # each failing app already showed its own toast or alert
         updates = sum(1 for r in self.rows if r.has_update)
@@ -327,6 +346,8 @@ class TarseerWindow(Adw.ApplicationWindow):
                                 updated).format(n=updated))
         elif updated:
             self.toast(ngettext("{n} app updated", "{n} apps updated", updated).format(n=updated))
+        if self._destroyed:
+            return  # closed during the run: nobody to tell
         if failed:
             heading = ngettext("{n} Update Failed", "{n} Updates Failed", len(failed)).format(n=len(failed))
             show_error(self, heading, "\n\n".join(problems))

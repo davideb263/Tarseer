@@ -101,6 +101,19 @@ class TestSelection(unittest.TestCase):
         self.assertIsNotNone(score_asset("t-1.0-linux-armv6.tar.gz", "armv7l"))
         self.assertIsNone(score_asset("t-1.0-linux-armv7.tar.gz", "aarch64"))
 
+    def test_32bit_arm(self):
+        # armv6 machines (Pi Zero/1) take armv6/arm/armel builds, not armv7 ones.
+        for name in ("t-armv6.tar.gz", "t-linux-arm.tar.gz", "t-armel.tar.gz"):
+            with self.subTest(name):
+                self.assertIsNotNone(score_asset(name, "armv6l"))
+        self.assertIsNone(score_asset("t-armv7.tar.gz", "armv6l"))
+        self.assertIsNone(score_asset("t-armhf.tar.gz", "armv6l"))
+        # On armv7 an armv7 build wins over the armv6 fallbacks, whatever the order.
+        release = assets("t-armv6.tar.gz", "t-arm.tar.gz", "t-armv7.tar.gz", "t-x86_64.tar.gz")
+        names = [a.name for a in candidate_assets(release, "armv7l")]
+        self.assertEqual(names[0], "t-armv7.tar.gz")
+        self.assertNotIn("t-x86_64.tar.gz", names)
+
     def test_repo_bonus_with_underscore_repo_name(self):
         release = assets("other-1.0-x86_64.tar.gz", "my_tool-1.0-x86_64.tar.gz")
         self.assertEqual(candidate_assets(release, "x86_64", repo="me/my_tool")[0].name, "my_tool-1.0-x86_64.tar.gz")

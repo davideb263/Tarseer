@@ -69,27 +69,48 @@ class TarseerApplication(Adw.Application):
 
     def do_startup(self):
         Adw.Application.do_startup(self)
+        self._load_manager()
+
+    def _load_manager(self) -> bool:
+        """Read the config. On failure keep no manager (saving would overwrite
+        the unreadable file) and remember the error to show."""
         try:
             self.manager = AppManager()
         except ConfigError as e:
-            # Don't create a manager: saving would overwrite the unreadable file.
             self.config_error = e
-            return
+            return False
+        self.config_error = None
         self.token_loading = True
         token_store.load(self._on_token_loaded)
+        return True
 
     def do_activate(self):
+        if self.manager is None:
+            self._load_manager()  # the user may have fixed the file since
         if self._background_launch:
             # The activation that follows `--background`: no window.
             self._background_launch = False
-            if self._check_now:
+            if self.manager is None:
+                print(f"Tarseer: not checking in the background: {self.config_error}",
+                      file=sys.stderr)
+            elif self._check_now:
                 self.background.start_at_login(delay=0)
             else:
                 self.background.start_at_login()
             return
-        window = self.props.active_window or TarseerWindow(application=self)
+        window = self.props.active_window
+        if isinstance(window, TarseerWindow) and window.manager is None and self.manager is not None:
+            # It shows the config error, which is now fixed. New window first,
+            # so the application never runs out of windows and quits.
+            old, window = window, None
+        else:
+            old = None
+        window = window or TarseerWindow(application=self)
         window.present()
-        self.background.start_resident()
+        if old is not None:
+            old.destroy()
+        if self.manager is not None:
+            self.background.start_resident()
 
     # ── Token ────────────────────────────────────────────────────────────────
     def _on_token_loaded(self, token: str | None, error: Exception | None) -> None:

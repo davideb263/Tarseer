@@ -19,8 +19,9 @@ TARBALL_SUFFIXES = (
 ARCH_TOKENS = {
     "x86_64": {"x86_64", "amd64", "x64", "linux64", "64bit"},
     "aarch64": {"aarch64", "arm64", "armv8"},
-    # armv6 builds run on armv7 too.
-    "armv7l": {"armv7", "armv7l", "armv7hf", "armhf", "arm", "armv6", "armv6l", "armel"},
+    "armv7l": {"armv7", "armv7l", "armv7hf", "armhf"},
+    # A bare "arm" is usually the oldest 32-bit build (Go's GOARCH=arm defaults to armv6).
+    "armv6l": {"armv6", "armv6l", "armel", "arm"},
     "i686": {"i386", "i686", "x86", "386", "32bit", "linux32"},
     # Rust targets spell these out: powerpc64le-unknown-linux-gnu, powerpc64-...
     "ppc64le": {"ppc64le", "ppc64el", "powerpc64le"},
@@ -31,6 +32,9 @@ ARCH_TOKENS = {
     "mips64": {"mips64", "mips64el"},
     "mips": {"mips", "mipsel"},
 }
+# Older architectures whose builds also run on a machine: usable, but an
+# exact match is preferred.
+COMPATIBLE_ARCHES = {"armv7l": ("armv6l",)}
 FOREIGN_OS_TOKENS = {
     "windows", "win", "win32", "win64", "macos", "mac", "osx", "darwin", "apple",
     "freebsd", "openbsd", "netbsd", "android", "ios",
@@ -76,12 +80,15 @@ def score_asset(name: str, machine: str | None = None, repo: str | None = None) 
     if tokens & FOREIGN_OS_TOKENS:
         return None
     own = ARCH_TOKENS.get(machine, {machine})
-    foreign = set().union(*(t for m, t in ARCH_TOKENS.items() if m != machine)) - own
-    if tokens & foreign and not tokens & own:
+    compatible = set().union(*(ARCH_TOKENS[m] for m in COMPATIBLE_ARCHES.get(machine, ())))
+    foreign = set().union(*(t for m, t in ARCH_TOKENS.items() if m != machine)) - own - compatible
+    if tokens & foreign and not tokens & (own | compatible):
         return None
     score = 0
     if tokens & own:
         score += 10
+    elif tokens & compatible:
+        score += 5
     if "linux" in tokens:
         score += 5
     if tokens & UNWANTED_TOKENS:

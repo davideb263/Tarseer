@@ -1,7 +1,6 @@
 <div align="center">
   <img src="data/icons/hicolor/scalable/apps/io.github.davideb263.Tarseer.svg" width="128" height="128" alt="Tarseer icon">
   <h1>Tarseer</h1>
-  <p><strong>Install and update tarball apps from GitHub Releases.</strong></p>
 </div>
 
 > [!WARNING]
@@ -9,6 +8,8 @@
 > AI coding assistant. It is reviewed and tested, but no person wrote it line
 > by line. Tarseer downloads software and writes to your home folder, so
 > **use it at your own risk.**
+
+**Install and update tarball apps from GitHub Releases.**
 
 Some Linux apps ship only as a `.tar.gz`/`.tar.xz` on their GitHub Releases
 page: no Flatpak, no AppImage, no distro package. Installing them by hand means

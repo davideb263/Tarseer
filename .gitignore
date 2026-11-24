@@ -3,6 +3,7 @@ build-dir/
 .flatpak-builder/
 repo/
 _build/
+*.flatpak
 
 # Python
 __pycache__/

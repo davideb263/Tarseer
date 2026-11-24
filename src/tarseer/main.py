@@ -35,6 +35,8 @@ class TarseerApplication(Adw.Application):
             version=self.version,
             license_type=Gtk.License.GPL_3_0,
             comments="Install and update apps distributed as tarballs on GitHub",
+            website="https://github.com/davideb263/Tarseer",
+            issue_url="https://github.com/davideb263/Tarseer/issues",
         )
         about.present(self.props.active_window)
 

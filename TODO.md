@@ -5,8 +5,6 @@ Ideas and known issues for after v1. Keep this file current: move items to
 found while working.
 
 ## Next up
-- [ ] **Homepage/repo URL** in the metainfo (`url type="homepage"`) and About
-      dialog, once the project is published on GitHub.
 
 ## Features
 - [ ] **Background update checks + notifications.** Check periodically (or at
@@ -28,8 +26,7 @@ found while working.
 - [ ] **Adopt an existing install** (point at a folder + tell Tarseer its version)
       instead of reinstalling.
 - [ ] **Translations:** strings already use `_()`; set up `po/` and Meson i18n.
-- [ ] **Flathub submission** (needs: screenshots in metainfo, homepage URL,
-      review of `--filesystem` permissions).
+- [ ] **Flathub submission** (needs: screenshots in metainfo, review of `--filesystem` permissions).
 - [ ] **Custom app Icon picking** Let the user pick a custom icon for the .desktop file.
       Put an option to pick a custom icon near or in the already existing dropdown where
       you choose between different icons in the app folder.
@@ -45,6 +42,7 @@ found while working.
       Re-pick the file on repo change (ties in with editing the pattern).
 
 ## Done
+- [x] Homepage, bug tracker and source URLs in the metainfo and About dialog.
 - [x] Real app icon in `data/icons/` (`a401572`, first draft with embedded bitmaps; replace with a proper vector SVG).
 - [x] v1: scaffold, core logic, main window, Add App dialog, details dialog
       (`f471394` … `ac25af6`).

@@ -20,6 +20,18 @@
   <launchable type="desktop-id">io.github.davideb263.Tarseer.desktop</launchable>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.3.0" date="2026-11-24">
+      <description>
+        <p>Tarseer can now check for updates on its own and tell you when there are new versions.</p>
+        <ul>
+          <li>Optional background checks: at login only, or every 6 hours, 12 hours or once a day</li>
+          <li>A notification lists the apps with new updates; clicking it opens Tarseer</li>
+          <li>Repeated checks reuse GitHub's previous answer: with an access token, unchanged releases no longer count against the request limit</li>
+          <li>After choosing another release file for an app that is up to date, it can be reinstalled right away</li>
+          <li>Release files for riscv64gc, powerpc64, loongarch64 and MIPS are no longer offered on other machines</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.2.1" date="2026-11-24">
       <description>
         <p>Bug fixes and security hardening.</p>

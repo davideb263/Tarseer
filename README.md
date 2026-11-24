@@ -26,7 +26,7 @@ Tarseer does this for you. It's a GNOME app (GTK4 + libadwaita), similar to
 **seer**, someone who sees what others miss. With eyes like that, it spots new
 releases of your tarballs as soon as they come out.
 
-> **Status:** early development (0.2.1). It works, but it isn't on Flathub
+> **Status:** early development (0.3.0). It works, but it isn't on Flathub
 > yet. See [TODO.md](TODO.md) for what's planned.
 
 ## Features
@@ -45,9 +45,17 @@ releases of your tarballs as soon as they come out.
   `calibre-7.3.0-x86_64.txz`).
   *Update All* updates every app one after another, and a download can be
   cancelled at any time.
+- **Background checks and notifications (optional).** Turn on *Check in the
+  Background* in *Preferences* and Tarseer starts without a window when you
+  log in. It checks once at login, or keeps checking every 6 hours, 12 hours
+  or once a day. When it finds versions you haven't heard about yet, it sends
+  one notification; clicking it opens Tarseer. Repeated checks reuse GitHub's
+  previous answer, so with an access token unchanged releases don't count
+  against the request limit.
 - **Change the release file.** If a project renames its files, moves to a new
   repository, or you want another build (e.g. musl instead of glibc), pick the
-  file again from the app's details.
+  file again from the app's details. If the app is already on the latest
+  version, Tarseer offers to reinstall it with the new file right away.
 - **Optional GitHub token.** Without one, GitHub allows 60 API requests per
   hour (one per app for each check). A fine-grained token with no extra
   permissions, added in *Preferences*, raises this to 5,000. It is kept in your
@@ -74,6 +82,8 @@ Supported formats: `.tar.gz`/`.tgz`, `.tar.xz`/`.txz`, `.tar.bz2`/`.tbz2`,
 | Previous version (for rollback) | `~/.local/opt/<id>.bak/` |
 | Menu entry | `~/.local/share/applications/<id>.desktop` |
 | List of managed apps | `~/.var/app/io.github.davideb263.Tarseer/config/tarseer/apps.json` |
+| GitHub's last answers (cache, safe to delete) | `~/.var/app/io.github.davideb263.Tarseer/cache/tarseer/releases.json` |
+| Start at login (only with background checks on) | `~/.config/autostart/io.github.davideb263.Tarseer.desktop`, written by the Background portal |
 
 The installed version is the release tag Tarseer recorded when it installed
 the app. Tarseer never runs the apps it manages to find out their version.

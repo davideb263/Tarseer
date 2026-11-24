@@ -5,74 +5,9 @@ Ideas and known issues for after v1. Keep this file current: move items to
 found while working.
 
 ## Next up
-v0.3 "Updates come to you": background checks + notifications, plus the
-`riscv64gc` and "Reinstall now" items. Then translations + Flathub as a
-"v1.0 readiness" release.
-
-v0.3 plan (agreed 2026-11-24):
-1. [x] **Check logic in core.** `AppManager.check_updates()` returns a release or
-       error per app (4 lookups at a time), stops early on rate limit / rejected
-       token, and caches the results; rows and the window read from the cache (`850bcb0`).
-2. [x] **Use the rate limit carefully.** ETag + `If-None-Match` per repo, last
-       replies cached in `$XDG_CACHE_HOME/tarseer/releases.json` (pruned to managed
-       repos at startup); `AppManager.has_quota_for()` (every app counted as a
-       request + 10 spare) for background runs to call first. Without a token a 304
-       still costs a request (verified live); with a token it's free (verified
-       manually with a real token: the quota in Preferences stays the same) (`d6654c6`).
-3. [x] **Background service** (`ui/background.py`). `tarseer --background`: no window,
-       first check 2 min after login (`--check-now`: right away); a second instance
-       hands off and exits. `check-interval-hours` 0 = at login only (check, retry
-       up to 3× every 5 min if offline, exit), otherwise resident: `hold()` and a
-       15-min tick that checks when due by wall clock (`core/schedule.py`, so
-       suspend counts). A normal launch also starts the resident service if
-       enabled; closing the window keeps it running, Ctrl+Q quits. Skips if the
-       quota is low or the window is busy; waits up to 30 s for the keyring, then
-       goes on without the token; errors only logged. The app now owns the manager
-       and token loading; an open window refreshes after a background check.
-       `ui/portal.py` wraps the Background portal (autostart + status); calling it
-       to register autostart is step 5 (`7c6a19e`).
-4. [x] **Notifications.** One `Gio.Notification` per background run ("6 Updates
-       Available" / "Alpha, Bravo, Charlie, Delta and 2 more"), not while the window
-       has focus. Only for tags not announced before (`notified-tags`; updates seen
-       in a window check count as announced; `core.schedule.notification_state`).
-       Withdrawn when a check finds no updates, or once every announced app has a
-       result and none has an update left. Clicking runs `app.show-updates`: opens
-       the window and checks if this process has no results. `DBusActivatable=true`
-       + D-Bus service file, so the click works after a login-only run exited.
-       Verified with faked GitHub + `dbus-monitor` (add / quiet / add / remove) (`dd30b6d`).
-5. [x] **Preferences "Updates" group.** Switch "Check in the Background" (opt-in;
-       asks the Background portal for autostart, a refusal or error is an alert and
-       the switch goes back off), frequency dropdown (at login only / 6 h / 12 h /
-       once a day → `check-interval-hours`), "Last Checked" (live). Changes call
-       `BackgroundService.restart()`. Successful window checks also set `last-check`,
-       so the background doesn't repeat them. Verified in a dev sandbox
-       (on/off/frequency/refusal via `TARSEER_DEV_DENY_BACKGROUND`). The first real
-       test failed (libportal from Python: callback got an extra argument, and the
-       autostart Exec lost its command line); the portal is now called over D-Bus
-       and was verified for real (correct `Exec=… --command=tarseer … --background`,
-       removed again on disable) (`d09f95f`). Verified manually: the switch stays on, Tarseer shows in Quick Settings'
-       background apps with a periodic frequency, and "At login only" exits after its check (`6c8002b`).
-6. [ ] **Dev/test.** Done: `TARSEER_CHECK_INTERVAL=<s>`, `--check-now`, dev settings
-       keyfile, `dev_screenshot.py --background-check` and `--pref-background`, real
-       portal on/off, Quick Settings entry, login-only run, a real notification and
-       clicking it both with Tarseer running and after it exited (D-Bus activation)
-       (manual, 2026-11-24, with a fake-GitHub dev sandbox). Left: locked keyring /
-       auto-login (the check goes on without the token after 30 s).
-7. [x] **Small extras.**
-   - [x] Arch names: `riscv64gc` (any `riscv64*`) and Rust-style `powerpc64`,
-         `powerpc64le`, `loongarch64`/`loong64`, MIPS are known, so they're no longer
-         offered on other machines (ripgrep offered riscv64gc and powerpc64 on x86_64) (`0b9845c`).
-   - [x] "Reinstall now": after changing the release file while the installed tag
-         is the latest, an alert offers Reinstall / Later. Reinstall runs as a row
-         update (progress, cancel, backup kept for rollback) and closes the details
-         dialog. Verified with ripgrep 16.0.0 gnu → musl (static binary installed,
-         gnu kept in `.bak`) and Later (pattern saved, files untouched) (`e13b523`).
-8. [ ] **Release 0.3.0.** Version bump, metainfo notes, README, merge to `main`, tag.
+Planned for the next release: translations + Flathub as a "v1.0 readiness" release.
 
 ## Features
-- [ ] **Background update checks + notifications.** Check periodically (or at
-      login) and notify when updates are available. Needs a background portal
-      or autostart entry; mind the GitHub rate limit.
 - [ ] **Multiple app grid entries per app**, e.g. Calibre's E-book Viewer and
       Editor alongside the main program.
 - [ ] **`StartupWMClass` detection/setting**, so running apps get the right icon
@@ -88,6 +23,9 @@ v0.3 plan (agreed 2026-11-24):
       you choose between different icons in the app folder.
 
 ## Known issues / polish
+- [ ] Not tested: background checks with automatic login, when the keyring is
+      still locked. The keyring may ask to be unlocked; the check goes on without
+      the token after 30 s.
 - [ ] Icon dropdown shows long paths truncated (`resources/images/calib…`);
       consider showing the file name with the folder as subtitle.
 - [ ] "Check for updates" errors are still toasts (one alert per app would
@@ -96,6 +34,65 @@ v0.3 plan (agreed 2026-11-24):
       token errors are already alerts, shown once per check.)
 
 ## Done
+- [x] v0.3.0 "Updates come to you" (plan agreed 2026-11-24):
+      1. [x] **Check logic in core.** `AppManager.check_updates()` returns a release or
+             error per app (4 lookups at a time), stops early on rate limit / rejected
+             token, and caches the results; rows and the window read from the cache (`850bcb0`).
+      2. [x] **Use the rate limit carefully.** ETag + `If-None-Match` per repo, last
+             replies cached in `$XDG_CACHE_HOME/tarseer/releases.json` (pruned to managed
+             repos at startup); `AppManager.has_quota_for()` (every app counted as a
+             request + 10 spare) for background runs to call first. Without a token a 304
+             still costs a request (verified live); with a token it's free (verified
+             manually with a real token: the quota in Preferences stays the same) (`d6654c6`).
+      3. [x] **Background service** (`ui/background.py`). `tarseer --background`: no window,
+             first check 2 min after login (`--check-now`: right away); a second instance
+             hands off and exits. `check-interval-hours` 0 = at login only (check, retry
+             up to 3× every 5 min if offline, exit), otherwise resident: `hold()` and a
+             15-min tick that checks when due by wall clock (`core/schedule.py`, so
+             suspend counts). A normal launch also starts the resident service if
+             enabled; closing the window keeps it running, Ctrl+Q quits. Skips if the
+             quota is low or the window is busy; waits up to 30 s for the keyring, then
+             goes on without the token; errors only logged. The app now owns the manager
+             and token loading; an open window refreshes after a background check.
+             `ui/portal.py` wraps the Background portal (autostart + status); calling it
+             to register autostart is step 5 (`7c6a19e`).
+      4. [x] **Notifications.** One `Gio.Notification` per background run ("6 Updates
+             Available" / "Alpha, Bravo, Charlie, Delta and 2 more"), not while the window
+             has focus. Only for tags not announced before (`notified-tags`; updates seen
+             in a window check count as announced; `core.schedule.notification_state`).
+             Withdrawn when a check finds no updates, or once every announced app has a
+             result and none has an update left. Clicking runs `app.show-updates`: opens
+             the window and checks if this process has no results. `DBusActivatable=true`
+             + D-Bus service file, so the click works after a login-only run exited.
+             Verified with faked GitHub + `dbus-monitor` (add / quiet / add / remove) (`dd30b6d`).
+      5. [x] **Preferences "Updates" group.** Switch "Check in the Background" (opt-in;
+             asks the Background portal for autostart, a refusal or error is an alert and
+             the switch goes back off), frequency dropdown (at login only / 6 h / 12 h /
+             once a day → `check-interval-hours`), "Last Checked" (live). Changes call
+             `BackgroundService.restart()`. Successful window checks also set `last-check`,
+             so the background doesn't repeat them. Verified in a dev sandbox
+             (on/off/frequency/refusal via `TARSEER_DEV_DENY_BACKGROUND`). The first real
+             test failed (libportal from Python: callback got an extra argument, and the
+             autostart Exec lost its command line); the portal is now called over D-Bus
+             and was verified for real (correct `Exec=… --command=tarseer … --background`,
+             removed again on disable) (`d09f95f`). Verified manually: the switch stays on, Tarseer shows in Quick Settings'
+             background apps with a periodic frequency, and "At login only" exits after its check (`6c8002b`).
+      6. [x] **Dev/test.** Done: `TARSEER_CHECK_INTERVAL=<s>`, `--check-now`, dev settings
+             keyfile, `dev_screenshot.py --background-check` and `--pref-background`, real
+             portal on/off, Quick Settings entry, login-only run, a real notification and
+             clicking it both with Tarseer running and after it exited (D-Bus activation)
+             (manual, 2026-11-24, with a fake-GitHub dev sandbox). Locked keyring / auto-login
+             not tested: see Known issues.
+      7. [x] **Small extras.**
+         - [x] Arch names: `riscv64gc` (any `riscv64*`) and Rust-style `powerpc64`,
+               `powerpc64le`, `loongarch64`/`loong64`, MIPS are known, so they're no longer
+               offered on other machines (ripgrep offered riscv64gc and powerpc64 on x86_64) (`0b9845c`).
+         - [x] "Reinstall now": after changing the release file while the installed tag
+               is the latest, an alert offers Reinstall / Later. Reinstall runs as a row
+               update (progress, cancel, backup kept for rollback) and closes the details
+               dialog. Verified with ripgrep 16.0.0 gnu → musl (static binary installed,
+               gnu kept in `.bak`) and Later (pattern saved, files untouched) (`e13b523`).
+      8. [x] **Release 0.3.0.** Version bump, metainfo notes, README, merge to `main`, tag (RELEASE_HASH).
 - [x] Fixes from the 2026-11-24 review of `dev`: a check or update finishing
       after its window closed no longer crashes (the window keeps its
       application) and still records `last-check`/`notified-tags`; a background

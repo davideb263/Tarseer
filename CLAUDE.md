@@ -17,7 +17,9 @@ Python + PyGObject, GTK4 + libadwaita 1.10, Blueprint UI files, Meson, Flatpak
   needs access: `flatpak run --filesystem=<dir> --env=TARSEER_DEV_ROOT=<dir> io.github.davideb263.Tarseer`
   It also gives GSettings its own keyfile (`<dir>/settings.ini`, group `[tarseer]`) and
   skips the Background portal (autostart is only logged; `TARSEER_DEV_DENY_BACKGROUND=1`
-  acts like a refusal), so the real setup is never touched.
+  acts like a refusal), so the real setup is never touched. That means dev runs never
+  exercise the real portal calls: after changing `ui/portal.py`, test them with a
+  small script run inside the Flatpak (`--command=python3`), then undo what it changed.
 - Background checks: `tarseer --background [--check-now]`; `TARSEER_CHECK_INTERVAL=<s>`
   overrides the interval. A resident instance survives `timeout` on `flatpak run`:
   stop it with `flatpak kill io.github.davideb263.Tarseer` (and mind the 60/hour

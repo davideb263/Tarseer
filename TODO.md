@@ -66,7 +66,7 @@ v0.3 plan (agreed 2026-11-24):
          is the latest, an alert offers Reinstall / Later. Reinstall runs as a row
          update (progress, cancel, backup kept for rollback) and closes the details
          dialog. Verified with ripgrep 16.0.0 gnu → musl (static binary installed,
-         gnu kept in `.bak`) and Later (pattern saved, files untouched).
+         gnu kept in `.bak`) and Later (pattern saved, files untouched) (`e13b523`).
 8. [ ] **Release 0.3.0.** Version bump, metainfo notes, README, merge to `main`, tag.
 
 ## Features

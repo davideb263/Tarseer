@@ -175,8 +175,6 @@ class BackgroundService:
                 if result.error is not None:
                     _log(f"could not check {app_id}: {result.error}")
             succeeded = check_succeeded(results)
-            if succeeded:
-                app_settings().set_int64("last-check", int(time.time()))
             _log(f"checked {len(results)} apps, {len(manager.updates)} updates")
             self.app.check_finished(results, background=True)
             done(succeeded)

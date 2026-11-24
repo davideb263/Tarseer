@@ -7,6 +7,40 @@ template $TarseerPreferencesDialog: Adw.PreferencesDialog {
 
   Adw.PreferencesPage {
     Adw.PreferencesGroup {
+      title: _("Updates");
+
+      Adw.SwitchRow background_row {
+        title: _("Check in the _Background");
+        use-underline: true;
+        subtitle: _("Tarseer starts without a window when you log in and notifies you about new updates");
+      }
+
+      Adw.ComboRow frequency_row {
+        title: _("_Frequency");
+        use-underline: true;
+        sensitive: bind background_row.active;
+
+        model: StringList {
+          strings [
+            _("At login only"),
+            _("Every 6 hours"),
+            _("Every 12 hours"),
+            _("Once a day"),
+          ]
+        };
+      }
+
+      Adw.ActionRow last_check_row {
+        title: _("Last Checked");
+        use-markup: false;
+
+        styles [
+          "property",
+        ]
+      }
+    }
+
+    Adw.PreferencesGroup {
       title: _("GitHub Access Token");
       description: _("Without a token, GitHub allows 60 requests per hour and every update check uses one per app. A token raises the limit to 5,000. It only needs to read public repositories: a fine-grained token with no extra permissions is enough.");
 

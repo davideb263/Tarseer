@@ -1,12 +1,18 @@
 from __future__ import annotations
 
-from gi.repository import Adw, GLib, GObject, Gtk
+import sys
+
+from gi.repository import Adw, Gio, GLib, GObject, Gtk
 
 from ..core.github import RateLimit, TokenRejectedError
 from ..core.manager import AppManager
-from . import token_store
+from . import portal, token_store
 from .alerts import show_error
+from .settings import app_settings
 from .tasks import run_task
+
+# check-interval-hours for each entry of the frequency dropdown (0: at login only).
+FREQUENCY_HOURS = [0, 6, 12, 24]
 
 NEW_TOKEN_URL = ("https://github.com/settings/personal-access-tokens/new"
                  "?name=Tarseer&description=Checks+GitHub+releases+for+Tarseer")
@@ -20,6 +26,9 @@ class PreferencesDialog(Adw.PreferencesDialog):
         "token-changed": (GObject.SignalFlags.RUN_FIRST, None, ()),
     }
 
+    background_row: Adw.SwitchRow = Gtk.Template.Child()
+    frequency_row: Adw.ComboRow = Gtk.Template.Child()
+    last_check_row: Adw.ActionRow = Gtk.Template.Child()
     token_row: Adw.PasswordEntryRow = Gtk.Template.Child()
     status_row: Adw.ActionRow = Gtk.Template.Child()
     status_spinner: Adw.Spinner = Gtk.Template.Child()
@@ -30,6 +39,8 @@ class PreferencesDialog(Adw.PreferencesDialog):
         token_loaded() once it is."""
         super().__init__()
         self.manager = manager
+        self.settings = app_settings()
+        self._setup_updates()
         self._sync_token_rows()
         if token_loading:
             self.status_spinner.set_visible(True)
@@ -37,6 +48,73 @@ class PreferencesDialog(Adw.PreferencesDialog):
         else:
             self.refresh_status()
 
+    # ── Background checks ────────────────────────────────────────────────────
+    def _setup_updates(self) -> None:
+        self.background_row.set_active(self.settings.get_boolean("background-checks"))
+        hours = self.settings.get_uint("check-interval-hours")
+        # A value set by hand (gsettings) shows as the nearest longer choice.
+        index = next((i for i, h in enumerate(FREQUENCY_HOURS) if h >= hours), len(FREQUENCY_HOURS) - 1)
+        self.frequency_row.set_selected(index)
+        self._background_handler = self.background_row.connect("notify::active", self._on_background_toggled)
+        self.frequency_row.connect("notify::selected", self._on_frequency_changed)
+        handler = self.settings.connect("changed::last-check", lambda *_: self._show_last_check())
+        self.connect("closed", lambda *_: self.settings.disconnect(handler))
+        self._show_last_check()
+
+    def _show_last_check(self) -> None:
+        stamp = self.settings.get_int64("last-check")
+        if stamp <= 0:
+            self.last_check_row.set_subtitle(_("Never"))
+            return
+        when = GLib.DateTime.new_from_unix_local(stamp)
+        now = GLib.DateTime.new_now_local()
+        time = when.format("%H:%M")
+        if when.get_ymd() == now.get_ymd():
+            text = _("Today at {time}").format(time=time)
+        elif when.get_ymd() == now.add_days(-1).get_ymd():
+            text = _("Yesterday at {time}").format(time=time)
+        else:
+            text = _("{date} at {time}").format(date=when.format("%x"), time=time)
+        self.last_check_row.set_subtitle(text)
+
+    def _set_background_row(self, active: bool) -> None:
+        """Change the switch without asking the portal again."""
+        with self.background_row.handler_block(self._background_handler):
+            self.background_row.set_active(active)
+
+    def _on_background_toggled(self, row, _pspec) -> None:
+        enable = row.get_active()
+        row.set_sensitive(False)  # one portal request at a time
+
+        def done(granted: bool, error: Exception | None):
+            row.set_sensitive(True)
+            if enable and not granted:
+                self._set_background_row(False)
+                if error is not None:
+                    body = _("The request to run in the background failed: {error}").format(error=error)
+                else:
+                    body = _("Tarseer isn't allowed to run in the background. You can allow it in "
+                             "Settings → Apps → Tarseer.")
+                show_error(self, _("Background Checks Not Turned On"), body)
+                return
+            if error is not None:
+                # Turning off: the setting is off anyway, so a leftover autostart
+                # entry only starts Tarseer to exit right away.
+                print(f"Tarseer: could not remove the autostart entry: {error}", file=sys.stderr)
+            self.settings.set_boolean("background-checks", enable)
+            Gio.Application.get_default().background.restart()
+
+        portal.request_autostart(self.get_root(), enable,
+                                 _("Check for app updates when you log in"), done)
+
+    def _on_frequency_changed(self, row, _pspec) -> None:
+        index = row.get_selected()
+        if index >= len(FREQUENCY_HOURS):
+            return
+        self.settings.set_uint("check-interval-hours", FREQUENCY_HOURS[index])
+        Gio.Application.get_default().background.restart()
+
+    # ── Token ────────────────────────────────────────────────────────────────
     def token_loaded(self) -> None:
         self._sync_token_rows()
         self.refresh_status()

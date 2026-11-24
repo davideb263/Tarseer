@@ -16,14 +16,16 @@ Python + PyGObject, GTK4 + libadwaita 1.10, Blueprint UI files, Meson, Flatpak
   config into `<dir>` (never test against the real `~/.local/opt`). The Flatpak
   needs access: `flatpak run --filesystem=<dir> --env=TARSEER_DEV_ROOT=<dir> io.github.davideb263.Tarseer`
   It also gives GSettings its own keyfile (`<dir>/settings.ini`, group `[tarseer]`) and
-  skips the Background portal (autostart is only logged), so the real setup is never touched.
+  skips the Background portal (autostart is only logged; `TARSEER_DEV_DENY_BACKGROUND=1`
+  acts like a refusal), so the real setup is never touched.
 - Background checks: `tarseer --background [--check-now]`; `TARSEER_CHECK_INTERVAL=<s>`
   overrides the interval. A resident instance survives `timeout` on `flatpak run`:
   stop it with `flatpak kill io.github.davideb263.Tarseer` (and mind the 60/hour
   anonymous quota when testing short intervals).
 - Screenshots for checking UI changes: `tools/dev_screenshot.py` (usage in its
   docstring; supports `--check`, `--update <id>`, `--progress-shot`,
-  `--add <repo> --add-shots <prefix>` to walk the Add App dialog, `--background-check`, `--details <id>`
+  `--add <repo> --add-shots <prefix>` to walk the Add App dialog, `--background-check`,
+  `--preferences <png> [--pref-background on|off --pref-frequency <i>]`, `--details <id>`
   with `--details-action rollback|remove-confirm|remove`). Read the PNG
   to verify layout instead of assuming it looks right.
 - `meson`/`blueprint-compiler` are NOT on the host (Bluefin); they exist only inside

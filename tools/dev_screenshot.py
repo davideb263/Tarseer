@@ -55,6 +55,10 @@ parser.add_argument("--cancel-after", type=float, metavar="SECONDS",
                     help="cancel the --update (Stop for 'all') or the --add install after SECONDS")
 parser.add_argument("--preferences", metavar="PATH",
                     help="finally open Preferences and screenshot it to PATH")
+parser.add_argument("--pref-background", choices=["on", "off"],
+                    help="with --preferences: flip the background checks switch, screenshot -background")
+parser.add_argument("--pref-frequency", type=int, metavar="INDEX",
+                    help="with --pref-background: also pick this frequency entry")
 parser.add_argument("--pref-token", metavar="TOKEN",
                     help="with --preferences: apply TOKEN, then screenshot to PATH with -applied")
 parser.add_argument("--fake-token-ok", action="store_true",
@@ -249,6 +253,16 @@ def drive_preferences(win, then):
 
     def shoot():
         screenshot(win, args.preferences)
+        if args.pref_background:
+            dialog.background_row.set_active(args.pref_background == "on")
+            if args.pref_frequency is not None:
+                dialog.frequency_row.set_selected(args.pref_frequency)
+            GLib.timeout_add(1500, lambda: (
+                screenshot(win, args.preferences.replace(".png", "-background.png")), token())[-1] and False)
+            return
+        token()
+
+    def token():
         if not args.pref_token:
             return then()
         dialog.token_row.set_text(args.pref_token)

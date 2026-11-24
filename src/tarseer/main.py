@@ -1,4 +1,5 @@
 import sys
+import time
 
 import gi
 
@@ -10,7 +11,7 @@ from gi.repository import Adw, Gio, GLib, GObject, Gtk  # noqa: E402
 from .core.config import ConfigError  # noqa: E402
 from .core.manager import AppManager  # noqa: E402
 from .core.models import CheckResult  # noqa: E402
-from .core.schedule import notification_state  # noqa: E402
+from .core.schedule import check_succeeded, notification_state  # noqa: E402
 from .ui import token_store  # noqa: E402
 from .ui.background import BackgroundService  # noqa: E402
 from .ui.settings import app_settings  # noqa: E402
@@ -132,9 +133,10 @@ class TarseerApplication(Adw.Application):
         return isinstance(window, TarseerWindow) and window.busy
 
     def check_finished(self, results: dict[str, CheckResult], background: bool) -> None:
-        """After any check: remember which updates the user knows about, and
-        notify about new ones found in the background unless the window has focus.
-        Updates found by a check in the window count as seen."""
+        """After any check: record when it worked, remember which updates the
+        user knows about, and notify about new ones found in the background
+        unless the window has focus. Updates found by a check in the window
+        count as seen."""
         manager = self.manager
         updates = {}
         for app in manager.updates:
@@ -143,6 +145,9 @@ class TarseerApplication(Adw.Application):
                 updates[app.id] = check.release.tag
         failed = {app_id for app_id, r in results.items() if r.error is not None}
         settings = app_settings()
+        if check_succeeded(results):
+            # Also for checks in the window: no need for a background check right after.
+            settings.set_int64("last-check", int(time.time()))
         notified = dict(settings.get_value("notified-tags").unpack())
         new, state = notification_state(updates, failed, notified)
         if state != notified:

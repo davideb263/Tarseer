@@ -30,8 +30,11 @@ def request_autostart(window: Gtk.Window | None, enable: bool, reason: str,
     done(granted, error): granted is False if the user or the system refused."""
     if os.environ.get("TARSEER_DEV_ROOT"):
         # The portal knows nothing about dev sandboxes: never touch the real autostart.
-        print(f"Tarseer (dev): would {'enable' if enable else 'disable'} autostart", file=sys.stderr)
-        GLib.idle_add(lambda: done(True, None) and False)
+        # TARSEER_DEV_DENY_BACKGROUND=1 acts like the user refused (to see the alert).
+        granted = not (enable and os.environ.get("TARSEER_DEV_DENY_BACKGROUND"))
+        print(f"Tarseer (dev): would {'enable' if enable else 'disable'} autostart"
+              + ("" if granted else " (denied)"), file=sys.stderr)
+        GLib.idle_add(lambda: done(granted, None) and False)
         return
 
     def finish(portal, result):

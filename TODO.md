@@ -40,11 +40,14 @@ v0.3 plan (agreed 2026-11-24):
        the window and checks if this process has no results. `DBusActivatable=true`
        + D-Bus service file, so the click works after a login-only run exited.
        Verified with faked GitHub + `dbus-monitor` (add / quiet / add / remove) (`dd30b6d`).
-5. [ ] **Preferences "Updates" group.** Switch "Check for updates in the background"
-       (opt-in, default off; calls `portal.request_autostart`), frequency dropdown
-       (`check-interval-hours`: 0/6/12/24), "Last checked" (`last-check`); then
-       `BackgroundService.restart()`. A portal refusal goes in an alert and turns
-       the switch back off. (Keys added in step 3; `notified-tags` comes with step 4.)
+5. [x] **Preferences "Updates" group.** Switch "Check in the Background" (opt-in;
+       asks the Background portal for autostart, a refusal or error is an alert and
+       the switch goes back off), frequency dropdown (at login only / 6 h / 12 h /
+       once a day → `check-interval-hours`), "Last Checked" (live). Changes call
+       `BackgroundService.restart()`. Successful window checks also set `last-check`,
+       so the background doesn't repeat them. Verified in a dev sandbox
+       (on/off/frequency/refusal via `TARSEER_DEV_DENY_BACKGROUND`); the real portal
+       still needs a manual test.
 6. [ ] **Dev/test.** Done in step 3: `TARSEER_CHECK_INTERVAL=<s>`, `--check-now`,
        dev settings keyfile, `dev_screenshot.py --background-check`. Left: screenshot
        of the Preferences group; manual test of the portal prompt, autostart after

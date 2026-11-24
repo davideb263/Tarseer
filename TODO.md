@@ -107,7 +107,7 @@ v0.3 plan (agreed 2026-11-24):
       reinstalling the same tag keeps the older backup; the periodic service
       stops if the interval is set to 0 (or checks turned off) outside
       Preferences; the release cache is read and pruned on the first lookup, in
-      a worker thread, not at startup (COMMIT).
+      a worker thread, not at startup (`4e8e513`).
 - [x] v0.2.1: review and security review fixes; version bump and metainfo
       release notes (`abcf182`).
 - [x] Fixes from the 2026-11-24 security review: symlinks escaping the install

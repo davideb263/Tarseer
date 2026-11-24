@@ -6,9 +6,8 @@ found while working.
 
 ## Next up
 v0.2 "Update all, safely", in this order:
-1. "Update All" button (sequential, per-app progress, one failure doesn't stop the rest).
-2. Cancel a running download.
-3. Optional GitHub token in the keyring.
+1. Cancel a running download (also: cancel the rest of an "Update All").
+2. Optional GitHub token in the keyring.
 
 Planned for v0.3: background checks + notifications (needs the token);
 then translations + Flathub as a "v1.0 readiness" release.
@@ -19,7 +18,6 @@ then translations + Flathub as a "v1.0 readiness" release.
       or autostart entry; mind the GitHub rate limit.
 - [ ] **Optional GitHub token** (Preferences) to raise the API limit from 60 to
       5000 requests/hour. Store it in the keyring (libsecret), not in apps.json.
-- [ ] **"Update All" button** in the header bar when several updates are available.
 - [ ] **Cancel a running download** (core already supports a cancel event in
       `github.download`).
 - [ ] **Multiple app grid entries per app**, e.g. Calibre's E-book Viewer and
@@ -49,6 +47,8 @@ then translations + Flathub as a "v1.0 readiness" release.
       arch, so it's offered on x86_64. Match arch tokens by prefix or add aliases.
 
 ## Done
+- [x] "Update All" in the header bar (2+ updates): one app at a time, queued rows
+      marked, failures collected into one alert at the end (COMMIT).
 - [x] Re-pick the release file from the details dialog ("Change…"), and pick it
       again when a new repository names its files differently (`daff575`).
       Cancel and confirm paths on repository change verified manually.

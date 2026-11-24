@@ -28,7 +28,8 @@ from tarseer.main import TarseerApplication  # noqa: E402
 parser = argparse.ArgumentParser()
 parser.add_argument("out", help="final screenshot path")
 parser.add_argument("--check", action="store_true", help="run 'Check for updates' first")
-parser.add_argument("--update", metavar="APP_ID", help="then update this app")
+parser.add_argument("--update", metavar="APP_ID", help="then update this app ('all': press Update All)")
+parser.add_argument("--checked-shot", metavar="PATH", help="with --check: screenshot after the check")
 parser.add_argument("--progress-shot", metavar="PATH", help="screenshot 3s into the update")
 parser.add_argument("--add", metavar="REPO", help="walk through the Add App dialog for REPO")
 parser.add_argument("--add-shots", metavar="PREFIX",
@@ -211,7 +212,21 @@ def on_activate(application):
             final_shot()
 
     def do_update():
-        if args.update:
+        if args.checked_shot:
+            screenshot(win, args.checked_shot)
+        if args.update == "all":
+            win.activate_action("win.update-all", None)
+            print("states:", {r.app.id: r.state_stack.get_visible_child_name() for r in win.rows})
+            if args.progress_shot:  # on the next frame: small downloads finish within a second
+                clock = win.get_frame_clock()
+                handler = []
+
+                def painted(*_a):
+                    clock.disconnect(handler[0])
+                    screenshot(win, args.progress_shot)
+                handler.append(clock.connect("after-paint", painted))
+            wait_for(lambda: win._update_queue is None, lambda: GLib.timeout_add(1500, lambda: finish() and False))
+        elif args.update:
             row = next(r for r in win.rows if r.app.id == args.update)
             row.update()
             if args.progress_shot:

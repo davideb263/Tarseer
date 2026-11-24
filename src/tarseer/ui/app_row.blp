@@ -44,6 +44,18 @@ template $TarseerAppRow: Adw.ActionRow {
     }
 
     StackPage {
+      name: "queued";
+      child: Label {
+        label: _("Queued");
+        tooltip-text: _("Waits for the other updates to finish");
+
+        styles [
+          "dim-label",
+        ]
+      };
+    }
+
+    StackPage {
       name: "progress";
       child: ProgressBar progress_bar {
         width-request: 120;

@@ -30,6 +30,19 @@ template $TarseerWindow: Adw.ApplicationWindow {
         tooltip-text: _("Main Menu");
         menu-model: primary_menu;
       }
+
+      [end]
+      Button update_all_button {
+        label: _("_Update All");
+        use-underline: true;
+        tooltip-text: _("Update every app with an available update, one after another");
+        action-name: "win.update-all";
+        visible: false;
+
+        styles [
+          "suggested-action",
+        ]
+      }
     }
 
     content: Adw.ToastOverlay toast_overlay {

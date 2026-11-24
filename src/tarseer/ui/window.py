@@ -21,6 +21,7 @@ class TarseerWindow(Adw.ApplicationWindow):
     main_stack: Gtk.Stack = Gtk.Template.Child()
     list_box: Gtk.ListBox = Gtk.Template.Child()
     error_page: Adw.StatusPage = Gtk.Template.Child()
+    update_all_button: Gtk.Button = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -41,11 +42,18 @@ class TarseerWindow(Adw.ApplicationWindow):
         self.add_action(self.add_app_action)
         self.get_application().set_accels_for_action("win.add-app", ["<primary>n"])
 
+        self.update_all_action = Gio.SimpleAction.new("update-all", None)
+        self.update_all_action.connect("activate", lambda *_: self.update_all())
+        self.add_action(self.update_all_action)
+
         self.rows: list[AppRow] = []
         self.rows_by_id: dict[str, AppRow] = {}
         self._pending_checks = 0
         self._check_errors = 0
         self._shown_messages: set[str] = set()
+        # "Update All" run: rows still waiting, and the rows it handled so far.
+        self._update_queue: list[AppRow] | None = None
+        self._update_done: list[AppRow] = []
 
         try:
             self.manager: AppManager | None = AppManager()
@@ -56,6 +64,7 @@ class TarseerWindow(Adw.ApplicationWindow):
             self.main_stack.set_visible_child_name("error")
             self.check_action.set_enabled(False)
             self.add_app_action.set_enabled(False)
+            self.update_all_action.set_enabled(False)
             return
         self.populate()
         if self.manager.startup_warnings:
@@ -74,11 +83,22 @@ class TarseerWindow(Adw.ApplicationWindow):
                 row.connect("notify-user", lambda _row, msg: self.toast(msg))
                 row.connect("show-error", lambda _row, heading, body: show_error(self, heading, body))
                 row.connect("launcher-warnings", lambda _row, w: show_launcher_warnings(self, w))
+                row.connect("refreshed", lambda _row: self._sync_actions())
             self.rows_by_id[app.id] = row
             self.list_box.append(row)
         self.rows = list(self.rows_by_id.values())
         self.main_stack.set_visible_child_name("list" if self.rows else "empty")
-        self.check_action.set_enabled(bool(self.rows) and not self._pending_checks)
+        self._sync_actions()
+
+    def _sync_actions(self) -> None:
+        """Checking and "Update All" both change the rows' state: one at a time."""
+        if self.manager is None:
+            return
+        updating_all = self._update_queue is not None
+        self.check_action.set_enabled(bool(self.rows) and not self._pending_checks and not updating_all)
+        updates = sum(1 for r in self.rows if r.has_update)
+        self.update_all_button.set_visible(updating_all or updates >= 2)
+        self.update_all_action.set_enabled(updates >= 1 and not self._pending_checks and not updating_all)
 
     # ── Add app ──────────────────────────────────────────────────────────────
     def open_add_dialog(self) -> None:
@@ -119,10 +139,10 @@ class TarseerWindow(Adw.ApplicationWindow):
 
     # ── Check for updates ────────────────────────────────────────────────────
     def check_updates(self) -> None:
-        if self._pending_checks or not self.rows:
+        if self._pending_checks or not self.rows or self._update_queue is not None:
             return
-        self.check_action.set_enabled(False)
         self._pending_checks = len(self.rows)
+        self._sync_actions()
         self._check_errors = 0
         self._shown_messages.clear()
         for row in self.rows:
@@ -134,7 +154,7 @@ class TarseerWindow(Adw.ApplicationWindow):
             self._check_errors += 1
         if self._pending_checks:
             return
-        self.check_action.set_enabled(True)
+        self._sync_actions()
         if self._check_errors:
             return  # each failing row already showed its own toast
         updates = sum(1 for r in self.rows if r.has_update)
@@ -142,3 +162,45 @@ class TarseerWindow(Adw.ApplicationWindow):
             self.toast(ngettext("{n} update available", "{n} updates available", updates).format(n=updates))
         else:
             self.toast(_("All apps are up to date"))
+
+    # ── Update all ───────────────────────────────────────────────────────────
+    def update_all(self) -> None:
+        """Update every app with an available update, one at a time, so downloads
+        don't compete and a failure doesn't stop the others."""
+        if self._update_queue is not None or self._pending_checks:
+            return
+        queue = [r for r in self.rows if r.has_update and not r.busy]
+        if not queue:
+            return
+        self._update_queue, self._update_done = queue, []
+        for row in queue:
+            row.set_queued(True)
+        self._sync_actions()
+        self._update_next()
+
+    def _update_next(self, _finished: AppRow | None = None) -> None:
+        if _finished is not None:
+            self._update_done.append(_finished)
+        while self._update_queue:
+            row = self._update_queue.pop(0)
+            if self.rows_by_id.get(row.app.id) is not row:
+                continue  # removed (or replaced) while waiting
+            if row.update(done=self._update_next, quiet=True):
+                return
+            # Nothing to do any more (already updated or busy): skip it.
+        self._finish_update_all()
+
+    def _finish_update_all(self) -> None:
+        done, self._update_queue, self._update_done = self._update_done, None, []
+        self._sync_actions()
+        failed = [r for r in done if r.last_error]
+        updated = len(done) - len(failed)
+        problems = [_("{app}: {error}").format(app=r.app.name, error=r.last_error) for r in failed]
+        problems += [w for r in done for w in r.last_warnings]
+        if updated:
+            self.toast(ngettext("{n} app updated", "{n} apps updated", updated).format(n=updated))
+        if failed:
+            heading = ngettext("{n} Update Failed", "{n} Updates Failed", len(failed)).format(n=len(failed))
+            show_error(self, heading, "\n\n".join(problems))
+        elif problems:
+            show_launcher_warnings(self, problems)

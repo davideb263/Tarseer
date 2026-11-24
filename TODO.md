@@ -43,7 +43,7 @@ found while working.
 
 ## Done
 - [x] Homepage, bug tracker and source URLs in the metainfo and About dialog (`d83cfa4`).
-- [x] Real app icon in `data/icons/` (`a401572`, first draft with embedded bitmaps; replace with a proper vector SVG).
+- [x] Real app icon in `data/icons/` (`a401572` first draft; vector SVG in `4df7f2e`).
 - [x] v1: scaffold, core logic, main window, Add App dialog, details dialog
       (`f471394` … `ac25af6`).
 - [x] Menu entries named `<id>.desktop` with conflict detection and migration of

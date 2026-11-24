@@ -42,7 +42,7 @@ found while working.
       Re-pick the file on repo change (ties in with editing the pattern).
 
 ## Done
-- [x] Homepage, bug tracker and source URLs in the metainfo and About dialog.
+- [x] Homepage, bug tracker and source URLs in the metainfo and About dialog (`d83cfa4`).
 - [x] Real app icon in `data/icons/` (`a401572`, first draft with embedded bitmaps; replace with a proper vector SVG).
 - [x] v1: scaffold, core logic, main window, Add App dialog, details dialog
       (`f471394` … `ac25af6`).

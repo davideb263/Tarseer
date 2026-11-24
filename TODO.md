@@ -48,7 +48,7 @@ then translations + Flathub as a "v1.0 readiness" release.
 
 ## Done
 - [x] "Update All" in the header bar (2+ updates): one app at a time, queued rows
-      marked, failures collected into one alert at the end (COMMIT).
+      marked, failures collected into one alert at the end (`a047284`).
 - [x] Re-pick the release file from the details dialog ("Change…"), and pick it
       again when a new repository names its files differently (`daff575`).
       Cancel and confirm paths on repository change verified manually.

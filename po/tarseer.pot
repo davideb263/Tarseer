@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: tarseer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-25 10:28+0100\n"
+"POT-Creation-Date: 2026-11-25 10:34+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -31,13 +31,59 @@ msgid "tarball;tar;github;release;update;installer;"
 msgstr ""
 
 #: data/io.github.davideb263.Tarseer.metainfo.xml.in:7
-msgid "Install and update tarball apps from GitHub"
+msgid "Manage tarball apps from GitHub"
 msgstr ""
 
 #: data/io.github.davideb263.Tarseer.metainfo.xml.in:9
 msgid ""
 "Tarseer installs applications distributed as tarballs on GitHub Releases, "
 "adds them to your app grid, and keeps them up to date."
+msgstr ""
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:14
+msgid ""
+"Add an app by its repository: Tarseer picks the right file for your computer"
+msgstr ""
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:15
+msgid "Finds the program and its icon and creates an app grid entry"
+msgstr ""
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:16
+msgid ""
+"Checks for updates, optionally in the background, and notifies you about new "
+"versions"
+msgstr ""
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:17
+msgid ""
+"Updates one app or all of them, keeping the previous version to go back to"
+msgstr ""
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:18
+msgid "Never overwrites menu entries it didn't create"
+msgstr ""
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:20
+msgid ""
+"An optional GitHub access token, kept in your keyring, raises the limit on "
+"how often Tarseer can check for updates."
+msgstr ""
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:37
+msgid "Your apps, with updates waiting"
+msgstr ""
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:41
+msgid "Adding an app picks the right file for your computer"
+msgstr ""
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:45
+msgid "Change the program, icon or release file of an app"
+msgstr ""
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:49
+msgid "Background checks and an optional GitHub token"
 msgstr ""
 
 #: src/tarseer/core/assets.py:124

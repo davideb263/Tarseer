@@ -124,6 +124,14 @@ flatpak run io.github.davideb263.Tarseer
 
 The Flatpak has network access plus write access to `~/.local/opt` and
 `~/.local/share/applications`, and nothing else on the host filesystem.
+Notifications, starting at login, the keyring and opening links go through
+XDG portals, without other D-Bus access.
+
+Keep in mind that the apps Tarseer installs are ordinary programs, not
+sandboxed: their menu entries start them outside Flatpak. That is the point
+of Tarseer, but it also means writing to `~/.local/share/applications` lets
+Tarseer start programs outside its sandbox. Only add repositories you trust,
+as you would when installing a tarball by hand.
 
 ## Development
 

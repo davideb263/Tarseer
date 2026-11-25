@@ -4,13 +4,51 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <name translate="no">Tarseer</name>
-  <summary>Install and update tarball apps from GitHub</summary>
+  <summary>Manage tarball apps from GitHub</summary>
   <description>
     <p>
       Tarseer installs applications distributed as tarballs on GitHub Releases,
       adds them to your app grid, and keeps them up to date.
     </p>
+    <ul>
+      <li>Add an app by its repository: Tarseer picks the right file for your computer</li>
+      <li>Finds the program and its icon and creates an app grid entry</li>
+      <li>Checks for updates, optionally in the background, and notifies you about new versions</li>
+      <li>Updates one app or all of them, keeping the previous version to go back to</li>
+      <li>Never overwrites menu entries it didn't create</li>
+    </ul>
+    <p>
+      An optional GitHub access token, kept in your keyring, raises the limit on
+      how often Tarseer can check for updates.
+    </p>
   </description>
+  <branding>
+    <color type="primary" scheme_preference="light">#f6d9a5</color>
+    <color type="primary" scheme_preference="dark">#77492c</color>
+  </branding>
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </supports>
+  <!-- Pinned to the release tag: retake them with tools/dev_screenshot.py when the UI changes. -->
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/davideb263/Tarseer/v1.0.0/data/screenshots/main.png</image>
+      <caption>Your apps, with updates waiting</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/davideb263/Tarseer/v1.0.0/data/screenshots/add.png</image>
+      <caption>Adding an app picks the right file for your computer</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/davideb263/Tarseer/v1.0.0/data/screenshots/details.png</image>
+      <caption>Change the program, icon or release file of an app</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/davideb263/Tarseer/v1.0.0/data/screenshots/preferences.png</image>
+      <caption>Background checks and an optional GitHub token</caption>
+    </screenshot>
+  </screenshots>
   <developer id="io.github.davideb263">
     <name translate="no">Davide Botter</name>
   </developer>

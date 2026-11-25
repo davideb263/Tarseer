@@ -18,7 +18,16 @@ Planned for the next release: translations + Flathub as a "v1.0 readiness" relea
       instead of reinstalling.
 - [ ] **More languages** beyond Italian (Claude can draft them; ideally a native
       speaker reviews before release). See README "Translations".
-- [ ] **Flathub submission** (needs: screenshots in metainfo, review of `--filesystem` permissions).
+- [ ] **Flathub submission.** Done so far: screenshots (`data/screenshots/`, URLs
+      pinned to the `v1.0.0` tag, so they resolve only once it is pushed), store
+      description, branding colors, permissions explained in README; linter clean
+      except screenshot reachability. Flathub's Generative AI policy (checked
+      2026-11-25, docs.flathub.org requirements) applies: AI-generated code must
+      be disclosed and is accepted at reviewer discretion (may be rejected without
+      review); the Flathub manifest must contain no AI-generated or AI-assisted
+      content; AI must not open the PR or write its description, commits or
+      replies. So Davide writes the Flathub manifest and the PR himself; Claude
+      doesn't draft them.
 - [ ] **Custom app Icon picking** Let the user pick a custom icon for the .desktop file.
       Put an option to pick a custom icon near or in the already existing dropdown where
       you choose between different icons in the app folder.

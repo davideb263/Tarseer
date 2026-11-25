@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: tarseer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-25 10:28+0100\n"
+"POT-Creation-Date: 2026-11-25 10:34+0100\n"
 "PO-Revision-Date: 2026-11-25 09:31+0100\n"
 "Last-Translator: Davide Botter\n"
 "Language-Team: none\n"
@@ -30,8 +30,8 @@ msgid "tarball;tar;github;release;update;installer;"
 msgstr "tarball;tar;github;release;update;installer;aggiornamento;aggiornare;installare;"
 
 #: data/io.github.davideb263.Tarseer.metainfo.xml.in:7
-msgid "Install and update tarball apps from GitHub"
-msgstr "Installa e aggiorna applicazioni tarball da GitHub"
+msgid "Manage tarball apps from GitHub"
+msgstr "Gestisci applicazioni tarball da GitHub"
 
 #: data/io.github.davideb263.Tarseer.metainfo.xml.in:9
 msgid ""
@@ -40,6 +40,64 @@ msgid ""
 msgstr ""
 "Tarseer installa le applicazioni distribuite come tarball nelle release di "
 "GitHub, le aggiunge alla griglia delle applicazioni e le mantiene aggiornate."
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:14
+msgid ""
+"Add an app by its repository: Tarseer picks the right file for your computer"
+msgstr ""
+"Aggiungi un'applicazione dal suo repository: Tarseer sceglie il file giusto "
+"per il tuo computer"
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:15
+msgid "Finds the program and its icon and creates an app grid entry"
+msgstr ""
+"Trova il programma e la sua icona e crea una voce nella griglia delle "
+"applicazioni"
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:16
+msgid ""
+"Checks for updates, optionally in the background, and notifies you about new "
+"versions"
+msgstr ""
+"Controlla gli aggiornamenti, anche in background se vuoi, e ti avvisa delle "
+"nuove versioni"
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:17
+msgid ""
+"Updates one app or all of them, keeping the previous version to go back to"
+msgstr ""
+"Aggiorna un'applicazione o tutte, conservando la versione precedente per "
+"poterci tornare"
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:18
+msgid "Never overwrites menu entries it didn't create"
+msgstr "Non sovrascrive mai voci del menu che non ha creato"
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:20
+msgid ""
+"An optional GitHub access token, kept in your keyring, raises the limit on "
+"how often Tarseer can check for updates."
+msgstr ""
+"Un token di accesso GitHub facoltativo, conservato nel portachiavi, alza il "
+"limite di quanto spesso Tarseer può controllare gli aggiornamenti."
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:37
+msgid "Your apps, with updates waiting"
+msgstr "Le tue applicazioni, con aggiornamenti in attesa"
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:41
+msgid "Adding an app picks the right file for your computer"
+msgstr ""
+"Aggiungendo un'applicazione viene scelto il file giusto per il tuo computer"
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:45
+msgid "Change the program, icon or release file of an app"
+msgstr ""
+"Cambia il programma, l'icona o il file della release di un'applicazione"
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:49
+msgid "Background checks and an optional GitHub token"
+msgstr "Controlli in background e un token GitHub facoltativo"
 
 #: src/tarseer/core/assets.py:124
 msgid "The release file pattern cannot be empty"

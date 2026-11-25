@@ -53,7 +53,7 @@ class TarseerApplication(Adw.Application):
                              _("Start without a window and check for updates in the background"), None)
         self.add_main_option("check-now", 0, GLib.OptionFlags.NONE, GLib.OptionArg.NONE,
                              _("With --background: check right away (for testing)"), None)
-        self._create_action("quit", lambda *_: self.quit(), ["<primary>q"])
+        self._create_action("quit", lambda *args: self.quit(), ["<primary>q"])
         self._create_action("about", self._on_about)
         # Clicking the update notification (also starts Tarseer through D-Bus).
         self._create_action("show-updates", self._on_show_updates)

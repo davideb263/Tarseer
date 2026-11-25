@@ -77,7 +77,7 @@ def _is_program(path: Path) -> str | None:
 
 def _rank(scored: list[tuple[float, str]]) -> list[str]:
     scored.sort(key=lambda t: (-t[0], t[1]))
-    return [rel for _, rel in scored]
+    return [rel for _score, rel in scored]
 
 
 def _score_executables(install_dir: Path, hint: str) -> list[tuple[float, str, bool]]:
@@ -110,7 +110,7 @@ def _score_executables(install_dir: Path, hint: str) -> list[tuple[float, str, b
 
 def rank_executables(install_dir: Path, hint: str) -> list[str]:
     """Every program in the install dir, most likely main program first."""
-    return _rank([(s, rel) for s, rel, _ in _score_executables(install_dir, hint)])
+    return _rank([(s, rel) for s, rel, _plausible in _score_executables(install_dir, hint)])
 
 
 def guess_executable(install_dir: Path, hint: str) -> str | None:
@@ -163,7 +163,7 @@ def _score_icons(install_dir: Path, hint: str) -> list[tuple[float, str, bool]]:
 
 def rank_icons(install_dir: Path, hint: str) -> list[str]:
     """Every usable image in the install dir, most likely app icon first."""
-    return _rank([(s, rel) for s, rel, _ in _score_icons(install_dir, hint)])
+    return _rank([(s, rel) for s, rel, _plausible in _score_icons(install_dir, hint)])
 
 
 def guess_icon(install_dir: Path, hint: str) -> str | None:
@@ -221,12 +221,12 @@ def render_desktop_entry(app: ManagedApp, install_dir: Path) -> str:
         raise ValueError(_("App has no executable set"))
     for rel in (app.executable, app.icon):
         if rel is not None and not is_safe_relpath(rel):
-            raise ValueError(_("Unusable file name for a menu entry: {name!r}").format(name=rel))
+            raise ValueError(_("Unusable file name for a menu entry: “{name}”").format(name=rel))
     lines = [
         "[Desktop Entry]",
         "Type=Application",
         f"Name={_escape_value(app.name)}",
-        f"Comment={_escape_value(f'Installed by Tarseer from github.com/{app.repo}')}",
+        "Comment=" + _escape_value(_("Installed by Tarseer from github.com/{repo}").format(repo=app.repo)),
         f"Exec={_quote_exec_arg(str(install_dir / app.executable))}",
         f"Path={_escape_value(str(install_dir))}",
         f"Icon={_escape_value(str(install_dir / app.icon)) if app.icon else 'application-x-executable'}",

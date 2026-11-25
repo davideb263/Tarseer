@@ -40,24 +40,24 @@ class TarseerWindow(Adw.ApplicationWindow):
         self.settings.bind("window-maximized", self, "maximized", Gio.SettingsBindFlags.DEFAULT)
 
         self.check_action = Gio.SimpleAction.new("check-updates", None)
-        self.check_action.connect("activate", lambda *_: self.check_updates())
+        self.check_action.connect("activate", lambda *args: self.check_updates())
         self.add_action(self.check_action)
         self._app.set_accels_for_action("win.check-updates", ["<primary>r", "F5"])
 
         self.add_app_action = Gio.SimpleAction.new("add-app", None)
-        self.add_app_action.connect("activate", lambda *_: self.open_add_dialog())
+        self.add_app_action.connect("activate", lambda *args: self.open_add_dialog())
         self.add_action(self.add_app_action)
         self._app.set_accels_for_action("win.add-app", ["<primary>n"])
 
         self.update_all_action = Gio.SimpleAction.new("update-all", None)
-        self.update_all_action.connect("activate", lambda *_: self.update_all())
+        self.update_all_action.connect("activate", lambda *args: self.update_all())
         self.add_action(self.update_all_action)
         self.stop_updates_action = Gio.SimpleAction.new("stop-updates", None)
-        self.stop_updates_action.connect("activate", lambda *_: self.stop_updates())
+        self.stop_updates_action.connect("activate", lambda *args: self.stop_updates())
         self.add_action(self.stop_updates_action)
 
         self.preferences_action = Gio.SimpleAction.new("preferences", None)
-        self.preferences_action.connect("activate", lambda *_: self.open_preferences())
+        self.preferences_action.connect("activate", lambda *args: self.open_preferences())
         self.add_action(self.preferences_action)
         self._app.set_accels_for_action("win.preferences", ["<primary>comma"])
 
@@ -87,7 +87,7 @@ class TarseerWindow(Adw.ApplicationWindow):
             return
         # The application outlives this window when it keeps running in the background.
         handler = app.connect("token-loaded", self._on_token_loaded)
-        self.connect("destroy", lambda *_: app.disconnect(handler))
+        self.connect("destroy", lambda *args: app.disconnect(handler))
         self.populate()
         if self.manager.startup_warnings:
             # Wait until the window is on screen so the alert has a parent to attach to.
@@ -116,7 +116,7 @@ class TarseerWindow(Adw.ApplicationWindow):
     def open_preferences(self) -> None:
         app = self._app
         dialog = self._preferences = PreferencesDialog(self.manager, token_loading=app.token_loading)
-        dialog.connect("token-changed", lambda *_: setattr(app, "token_set_by_user", True))
+        dialog.connect("token-changed", lambda *args: setattr(app, "token_set_by_user", True))
         dialog.connect("closed", self._on_preferences_closed)
         dialog.present(self)
 
@@ -194,7 +194,7 @@ class TarseerWindow(Adw.ApplicationWindow):
     def open_details(self, row: AppRow) -> DetailsDialog:
         dialog = DetailsDialog(self.manager, row)
         dialog.connect("app-changed", self._on_app_changed)
-        dialog.connect("app-removed", lambda *_: self.populate())
+        dialog.connect("app-removed", lambda *args: self.populate())
         dialog.connect("notify-user", lambda _d, msg: self.toast(msg))
         dialog.present(self)
         return dialog

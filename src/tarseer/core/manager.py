@@ -57,7 +57,7 @@ class AppManager:
         # An id like "" or "../x" would point at the install root itself, or
         # outside it: remove() would then delete far more than one app.
         if not is_valid_id(app.id):
-            raise InstallError(_("Invalid app id: {id!r}").format(id=app.id))
+            raise InstallError(_("Invalid app id: “{id}”").format(id=app.id))
         return self.paths.install_root / app.id
 
     def can_rollback(self, app: ManagedApp) -> bool:
@@ -279,7 +279,7 @@ class AppManager:
             if rel is None:
                 continue
             if not desktop.is_safe_relpath(rel):
-                raise InstallError(_("{name!r} can't be used in an app grid entry").format(name=rel))
+                raise InstallError(_("“{name}” can't be used in an app grid entry").format(name=rel))
             path = (target / rel).resolve()
             if not path.is_relative_to(target.resolve()) or not path.is_file():
                 raise InstallError(_("{name} is not a file inside {folder}").format(name=rel, folder=target))

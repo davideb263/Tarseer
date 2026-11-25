@@ -107,7 +107,7 @@ def candidate_assets(
     scored = [(score_asset(a.name, machine, repo), i, a) for i, a in enumerate(assets)]
     usable = [(s, i, a) for s, i, a in scored if s is not None]
     usable.sort(key=lambda t: (-t[0], t[1]))
-    return [a for _, _, a in usable]
+    return [a for _score, _index, a in usable]
 
 
 def selectable_assets(
@@ -125,7 +125,7 @@ def validate_pattern(pattern: str) -> str:
     try:
         re.compile(pattern)
     except re.error as e:
-        raise ValueError(_("Invalid release file pattern {pattern!r}: {error}").format(pattern=pattern, error=e)) from e
+        raise ValueError(_("Invalid release file pattern “{pattern}”: {error}").format(pattern=pattern, error=e)) from e
     return pattern
 
 

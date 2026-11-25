@@ -57,8 +57,8 @@ class PreferencesDialog(Adw.PreferencesDialog):
         self.frequency_row.set_selected(index)
         self._background_handler = self.background_row.connect("notify::active", self._on_background_toggled)
         self.frequency_row.connect("notify::selected", self._on_frequency_changed)
-        handler = self.settings.connect("changed::last-check", lambda *_: self._show_last_check())
-        self.connect("closed", lambda *_: self.settings.disconnect(handler))
+        handler = self.settings.connect("changed::last-check", lambda *args: self._show_last_check())
+        self.connect("closed", lambda *args: self.settings.disconnect(handler))
         self._show_last_check()
 
     def _show_last_check(self) -> None:

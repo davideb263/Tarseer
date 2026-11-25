@@ -197,9 +197,8 @@ msgmerge --update po/<language>.po po/tarseer.pot
 
 Use `msginit -l <language> -i po/tarseer.pot -o po/<language>.po` for a new
 language. `meson compile -C _build tarseer-update-po` merges all of them at once.
-To try a translation, run `flatpak run --env=LANGUAGE=it io.github.davideb263.Tarseer`.
-Flatpak only installs translations for your system languages; add others with
-`flatpak config --user --set extra-languages "it;de"` and reinstall.
+All translations ship inside the app, so to try one just run
+`flatpak run --env=LANGUAGE=it io.github.davideb263.Tarseer`.
 
 ## License
 

@@ -27,7 +27,7 @@ def load_apps(path: Path) -> list[ManagedApp]:
         raise ConfigError(_("Could not read {path}: {error}").format(path=path, error=e)) from e
     for app in apps:
         if not is_valid_id(app.id):
-            raise ConfigError(_("Could not read {path}: invalid app id {id!r}").format(path=path, id=app.id))
+            raise ConfigError(_("Could not read {path}: invalid app id “{id}”").format(path=path, id=app.id))
     return apps
 
 

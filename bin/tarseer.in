@@ -17,7 +17,16 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)
 try:
     locale.setlocale(locale.LC_ALL, "")
 except locale.Error:
-    pass  # unsupported locale: stay untranslated
+    # The locale isn't in the runtime, so the C side (GtkBuilder) stays
+    # untranslated. Keep Python's gettext, which reads LANGUAGE/LANG itself,
+    # untranslated too, or the window comes out half translated.
+    print("tarseer: locale {} not available, using English".format(
+        os.environ.get("LC_ALL") or os.environ.get("LANG") or "?"), file=sys.stderr)
+    os.environ["LANGUAGE"] = "C"
+    try:
+        locale.setlocale(locale.LC_ALL, "C.UTF-8")
+    except locale.Error:
+        pass
 # C side (GtkBuilder, for the Blueprint UI files).
 locale.bindtextdomain("tarseer", localedir)
 locale.textdomain("tarseer")

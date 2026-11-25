@@ -117,7 +117,7 @@ def parse_repo(text: str) -> str:
         repo = repo.removesuffix(".git")
         text = f"{owner}/{repo}"
     if not _REPO_RE.match(text):
-        raise ValueError(_("Not a GitHub repository: {text!r}").format(text=text))
+        raise ValueError(_("Not a GitHub repository: “{text}”").format(text=text))
     return text
 
 
@@ -146,15 +146,18 @@ def _request(url: str, accept: str, token: str | None = None) -> urllib.request.
     return urllib.request.Request(url, headers=headers)
 
 
-def _translate_http_error(e: urllib.error.HTTPError, what: str, token: str | None = None) -> GitHubError:
+def _translate_http_error(e: urllib.error.HTTPError, not_found: str, failed: str,
+                          token: str | None = None, **fields: str) -> GitHubError:
+    """`not_found` is the whole message for a 404; `failed` is a translated
+    template for other errors, formatted with the status code as {code} and `fields`."""
     if e.code == 401 and token:  # without a token, 401 isn't about ours
         return TokenRejectedError()
     if e.code in (403, 429) and e.headers.get("x-ratelimit-remaining") == "0":
         reset = e.headers.get("x-ratelimit-reset")
         return RateLimitError(float(reset) if reset else None, with_token=bool(token))
     if e.code == 404:
-        return NotFoundError(_("{what} not found").format(what=what))
-    return GitHubError(_("GitHub returned HTTP {code} for {what}").format(code=e.code, what=what))
+        return NotFoundError(not_found)
+    return GitHubError(failed.format(code=e.code, **fields))
 
 
 def get_latest_release(repo: str, timeout: float = 15, cached: Release | None = None) -> Release:
@@ -179,13 +182,14 @@ def get_latest_release(repo: str, timeout: float = 15, cached: Release | None = 
         if e.code == 304 and cached is not None:
             e.close()  # the usual reply once cached: don't leave its connection to GC
             return cached
-        if e.code == 404:
+        if e.code == 404:  # so the not_found message below is never used
             raise NotFoundError(_("{repo} has no releases, or the repository does not exist").format(repo=repo)) from e
-        raise _translate_http_error(e, _("Latest release of {repo}").format(repo=repo), token) from e
+        raise _translate_http_error(
+            e, "", _("GitHub returned HTTP {code} for the latest release of {repo}"), token, repo=repo) from e
     except urllib.error.URLError as e:
-        raise GitHubError(f"Network error: {e.reason}") from e
+        raise GitHubError(_("Network error: {error}").format(error=e.reason)) from e
     except (ValueError, KeyError) as e:
-        raise GitHubError(f"Unexpected response from GitHub: {e}") from e
+        raise GitHubError(_("Unexpected response from GitHub: {error}").format(error=e)) from e
 
 
 def get_rate_limit(token: str | None = None, timeout: float = 15) -> RateLimit:
@@ -198,11 +202,13 @@ def get_rate_limit(token: str | None = None, timeout: float = 15) -> RateLimit:
             core = json.load(resp)["resources"]["core"]
             return RateLimit(int(core["limit"]), int(core["remaining"]), float(core["reset"]))
     except urllib.error.HTTPError as e:
-        raise _translate_http_error(e, _("Rate limit"), token) from e
+        raise _translate_http_error(
+            e, _("GitHub's rate limit information was not found"),
+            _("GitHub returned HTTP {code} for the rate limit information"), token) from e
     except urllib.error.URLError as e:
-        raise GitHubError(f"Network error: {e.reason}") from e
+        raise GitHubError(_("Network error: {error}").format(error=e.reason)) from e
     except (ValueError, KeyError, TypeError) as e:
-        raise GitHubError(f"Unexpected response from GitHub: {e}") from e
+        raise GitHubError(_("Unexpected response from GitHub: {error}").format(error=e)) from e
 
 
 def download(
@@ -243,6 +249,7 @@ def download(
             raise GitHubError(_("The downloaded file doesn't match the checksum GitHub published "
                                 "for it. Try again later."))
     except urllib.error.HTTPError as e:
-        raise _translate_http_error(e, _("Download")) from e
+        raise _translate_http_error(
+            e, _("The download was not found"), _("GitHub returned HTTP {code} for the download")) from e
     except urllib.error.URLError as e:
-        raise GitHubError(f"Network error: {e.reason}") from e
+        raise GitHubError(_("Network error: {error}").format(error=e.reason)) from e

@@ -95,7 +95,7 @@ def _check_links(root: Path) -> None:
             if path.is_symlink() and not path.resolve().is_relative_to(real_root):
                 rel = path.relative_to(root).as_posix()
                 raise InstallError(
-                    _("Archive contains an unsafe file: {name!r} links outside the app folder").format(name=rel))
+                    _("Archive contains an unsafe file: “{name}” links outside the app folder").format(name=rel))
 
 
 def _content_root(extracted: Path) -> Path:

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: tarseer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-25 10:52+0100\n"
+"POT-Creation-Date: 2026-11-25 11:08+0100\n"
 "PO-Revision-Date: 2026-11-25 09:31+0100\n"
 "Last-Translator: Davide Botter\n"
 "Language-Team: none\n"
@@ -104,8 +104,9 @@ msgid "The release file pattern cannot be empty"
 msgstr "Lo schema del file della release non può essere vuoto"
 
 #: src/tarseer/core/assets.py:128
-msgid "Invalid release file pattern {pattern!r}: {error}"
-msgstr "Schema del file della release {pattern!r} non valido: {error}"
+#, python-brace-format
+msgid "Invalid release file pattern “{pattern}”: {error}"
+msgstr "Schema del file della release «{pattern}» non valido: {error}"
 
 #: src/tarseer/core/config.py:27
 #, python-brace-format
@@ -113,8 +114,9 @@ msgid "Could not read {path}: {error}"
 msgstr "Impossibile leggere {path}: {error}"
 
 #: src/tarseer/core/config.py:30
-msgid "Could not read {path}: invalid app id {id!r}"
-msgstr "Impossibile leggere {path}: ID applicazione {id!r} non valido"
+#, python-brace-format
+msgid "Could not read {path}: invalid app id “{id}”"
+msgstr "Impossibile leggere {path}: ID applicazione «{id}» non valido"
 
 #: src/tarseer/core/desktop.py:196
 #, python-brace-format
@@ -131,8 +133,14 @@ msgid "App has no executable set"
 msgstr "L'applicazione non ha un eseguibile impostato"
 
 #: src/tarseer/core/desktop.py:224
-msgid "Unusable file name for a menu entry: {name!r}"
-msgstr "Nome di file non utilizzabile per una voce del menu: {name!r}"
+#, python-brace-format
+msgid "Unusable file name for a menu entry: “{name}”"
+msgstr "Nome di file non utilizzabile per una voce del menu: «{name}»"
+
+#: src/tarseer/core/desktop.py:229
+#, python-brace-format
+msgid "Installed by Tarseer from github.com/{repo}"
+msgstr "Installato da Tarseer da github.com/{repo}"
 
 #: src/tarseer/core/github.py:54
 msgid "GitHub API rate limit reached."
@@ -162,49 +170,59 @@ msgid "Refused an insecure redirect to {url}"
 msgstr "Rifiutato un reindirizzamento non sicuro a {url}"
 
 #: src/tarseer/core/github.py:120
-msgid "Not a GitHub repository: {text!r}"
-msgstr "Non è un repository GitHub: {text!r}"
+#, python-brace-format
+msgid "Not a GitHub repository: “{text}”"
+msgstr "Non è un repository GitHub: «{text}»"
 
 #: src/tarseer/core/github.py:140
 #, python-brace-format
 msgid "Refused to download from a non-HTTPS address: {url}"
 msgstr "Rifiutato lo scaricamento da un indirizzo non HTTPS: {url}"
 
-#: src/tarseer/core/github.py:156
-#, python-brace-format
-msgid "{what} not found"
-msgstr "{what}: non trovato"
-
-#: src/tarseer/core/github.py:157
-#, python-brace-format
-msgid "GitHub returned HTTP {code} for {what}"
-msgstr "GitHub ha risposto HTTP {code} per {what}"
-
-#: src/tarseer/core/github.py:183
+#. so the not_found message below is never used
+#: src/tarseer/core/github.py:186
 #, python-brace-format
 msgid "{repo} has no releases, or the repository does not exist"
 msgstr "{repo} non ha release, oppure il repository non esiste"
 
-#: src/tarseer/core/github.py:184
+#: src/tarseer/core/github.py:188
 #, python-brace-format
-msgid "Latest release of {repo}"
-msgstr "Ultima release di {repo}"
+msgid "GitHub returned HTTP {code} for the latest release of {repo}"
+msgstr "GitHub ha risposto HTTP {code} per l'ultima release di {repo}"
 
-#: src/tarseer/core/github.py:201
-msgid "Rate limit"
-msgstr "Limite di richieste"
+#: src/tarseer/core/github.py:190 src/tarseer/core/github.py:209
+#: src/tarseer/core/github.py:255
+#, python-brace-format
+msgid "Network error: {error}"
+msgstr "Errore di rete: {error}"
 
-#: src/tarseer/core/github.py:234
+#: src/tarseer/core/github.py:192 src/tarseer/core/github.py:211
+#, python-brace-format
+msgid "Unexpected response from GitHub: {error}"
+msgstr "Risposta inattesa da GitHub: {error}"
+
+#: src/tarseer/core/github.py:206
+msgid "GitHub's rate limit information was not found"
+msgstr ""
+"Le informazioni sul limite di richieste di GitHub non sono state trovate"
+
+#: src/tarseer/core/github.py:207
+#, python-brace-format
+msgid "GitHub returned HTTP {code} for the rate limit information"
+msgstr ""
+"GitHub ha risposto HTTP {code} per le informazioni sul limite di richieste"
+
+#: src/tarseer/core/github.py:240
 #, python-brace-format
 msgid "Download is larger than the {size} bytes GitHub announced"
 msgstr "Il file scaricato è più grande dei {size} byte indicati da GitHub"
 
-#: src/tarseer/core/github.py:241
+#: src/tarseer/core/github.py:247
 #, python-brace-format
 msgid "Download incomplete: got {done} of {total} bytes"
 msgstr "Scaricamento incompleto: ricevuti {done} di {total} byte"
 
-#: src/tarseer/core/github.py:243
+#: src/tarseer/core/github.py:249
 msgid ""
 "The downloaded file doesn't match the checksum GitHub published for it. Try "
 "again later."
@@ -212,9 +230,14 @@ msgstr ""
 "Il file scaricato non corrisponde al checksum pubblicato da GitHub. Riprova "
 "più tardi."
 
-#: src/tarseer/core/github.py:246
-msgid "Download"
-msgstr "Scaricamento"
+#: src/tarseer/core/github.py:253
+msgid "The download was not found"
+msgstr "Il file da scaricare non è stato trovato"
+
+#: src/tarseer/core/github.py:253
+#, python-brace-format
+msgid "GitHub returned HTTP {code} for the download"
+msgstr "GitHub ha risposto HTTP {code} per lo scaricamento"
 
 #: src/tarseer/core/installer.py:80
 msgid "Not enough disk space to unpack the archive"
@@ -231,9 +254,10 @@ msgid "Could not extract archive: {error}"
 msgstr "Impossibile estrarre l'archivio: {error}"
 
 #: src/tarseer/core/installer.py:98
-msgid "Archive contains an unsafe file: {name!r} links outside the app folder"
+#, python-brace-format
+msgid "Archive contains an unsafe file: “{name}” links outside the app folder"
 msgstr ""
-"L'archivio contiene un file non sicuro: {name!r} punta fuori dalla cartella "
+"L'archivio contiene un file non sicuro: «{name}» punta fuori dalla cartella "
 "dell'applicazione"
 
 #: src/tarseer/core/installer.py:129
@@ -255,8 +279,9 @@ msgid "Could not switch versions: {error}"
 msgstr "Impossibile cambiare versione: {error}"
 
 #: src/tarseer/core/manager.py:60
-msgid "Invalid app id: {id!r}"
-msgstr "ID applicazione non valido: {id!r}"
+#, python-brace-format
+msgid "Invalid app id: “{id}”"
+msgstr "ID applicazione non valido: «{id}»"
 
 #: src/tarseer/core/manager.py:204
 #, python-brace-format
@@ -286,9 +311,10 @@ msgid "Could not save settings: {error}"
 msgstr "Impossibile salvare le impostazioni: {error}"
 
 #: src/tarseer/core/manager.py:282
-msgid "{name!r} can't be used in an app grid entry"
+#, python-brace-format
+msgid "“{name}” can't be used in an app grid entry"
 msgstr ""
-"{name!r} non può essere usato in una voce della griglia delle applicazioni"
+"«{name}» non può essere usato in una voce della griglia delle applicazioni"
 
 #: src/tarseer/core/manager.py:285
 #, python-brace-format

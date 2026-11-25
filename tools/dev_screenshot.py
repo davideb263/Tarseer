@@ -11,11 +11,16 @@ Background checks: settings for a dev root are in "$DEV/settings.ini" (group [ta
 import argparse
 import gettext
 import locale
+import os
 import sys
 import time
 
 # Same translation setup as bin/tarseer.in (run with e.g. --env=LANGUAGE=it).
-locale.setlocale(locale.LC_ALL, "")
+try:
+    locale.setlocale(locale.LC_ALL, "")
+except locale.Error:  # as bin/tarseer.in: an unavailable locale means English everywhere
+    print("dev_screenshot: locale not available, using English", file=sys.stderr)
+    os.environ["LANGUAGE"] = "C"
 for module in (locale, gettext):
     module.bindtextdomain("tarseer", "/app/share/locale")
     module.textdomain("tarseer")

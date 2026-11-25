@@ -16,7 +16,8 @@ Planned for the next release: translations + Flathub as a "v1.0 readiness" relea
 - [ ] **Pre-release channel** per app (use `/releases` instead of `/releases/latest`).
 - [ ] **Adopt an existing install** (point at a folder + tell Tarseer its version)
       instead of reinstalling.
-- [ ] **Translations:** strings already use `_()`; set up `po/` and Meson i18n.
+- [ ] **More languages** beyond Italian (Claude can draft them; ideally a native
+      speaker reviews before release). See README "Translations".
 - [ ] **Flathub submission** (needs: screenshots in metainfo, review of `--filesystem` permissions).
 - [ ] **Custom app Icon picking** Let the user pick a custom icon for the .desktop file.
       Put an option to pick a custom icon near or in the already existing dropdown where
@@ -45,6 +46,10 @@ Tarseer targets GNOME; see README "Known limitations". If support is broadened:
 - [ ] **GNOME-specific wording** ("app grid", …) in labels: make it neutral.
 
 ## Done
+- [x] **Translations:** `po/` + Meson i18n, core messages translatable
+      (`core/i18n.py`), Italian translation (208 strings). Verified in the
+      Flatpak with `LANG=it_IT.UTF-8`: main window, Add App, details, remove
+      alert, Preferences and a core error message (`e0c2f49`).
 - [x] v0.3.0 "Updates come to you" (plan agreed 2026-11-24):
       1. [x] **Check logic in core.** `AppManager.check_updates()` returns a release or
              error per app (4 lookups at a time), stops early on rate limit / rejected

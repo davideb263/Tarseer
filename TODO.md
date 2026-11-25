@@ -84,7 +84,7 @@ is asking its maintainer (see the FlatPark item below).
       4. [x] `data/flatpak/`: `.flatpakrepo`, `.flatpakref`, landing `index.html`;
          README "Installing" rewritten (migration: `remote-add` + `install --reinstall tarseer <id>`; `--reinstall` with the .flatpakref refuses an installed app). Davide's install switched 2026-11-25.
       5. [ ] Verify end to end: add the remote, install, then a later release shows
-         up in `flatpak update` (and check whether Bazaar lists it).
+         up in `flatpak update`. Bazaar lists the remote and the app (confirmed by Davide 2026-11-25).
 
 ## Other desktops (low priority)
 Tarseer targets GNOME; see README "Known limitations". If support is broadened:

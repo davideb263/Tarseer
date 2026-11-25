@@ -5,9 +5,7 @@ Ideas and known issues for after v1. Keep this file current: move items to
 found while working.
 
 ## Next up
-Nothing planned yet. Flathub is on hold (Davide decides later; see the
-Flathub item below). FlatPark is being explored as an alternative: first step
-is asking its maintainer (see the FlatPark item below).
+Nothing planned yet.
 
 ## Features
 - [ ] **Multiple app grid entries per app**, e.g. Calibre's E-book Viewer and
@@ -20,36 +18,6 @@ is asking its maintainer (see the FlatPark item below).
       instead of reinstalling.
 - [ ] **More languages** beyond Italian (Claude can draft them; ideally a native
       speaker reviews before release). See README "Translations".
-- [ ] **Flathub submission (on hold since 2026-11-25).** Done so far: screenshots (`data/screenshots/`, URLs
-      pinned to the `v1.0.0` tag, so they resolve only once it is pushed), store
-      description, branding colors, permissions explained in README; linter clean
-      except screenshot reachability. Flathub's Generative AI policy (checked
-      2026-11-25, docs.flathub.org requirements) applies: AI-generated code must
-      be disclosed and is accepted at reviewer discretion (may be rejected without
-      review); the Flathub manifest must contain no AI-generated or AI-assisted
-      content; AI must not open the PR or write its description, commits or
-      replies. So Davide writes the Flathub manifest and the PR himself; Claude
-      doesn't draft them.
-- [ ] **FlatPark listing (alternative to Flathub, evaluated 2026-11-25).**
-      flatpark.org is a community Flatpak remote (preinstalled in Bluefin's Bazaar,
-      filtered by a small denylist only) that accepts AI-assisted apps. Feasible on
-      paper: GNOME 51 is its current runtime, and Cellar (org.flatpark.Cellar) is a
-      precedent for runtime downloads + `xdg-data/applications:create`. Open points:
-      1. [ ] Ask the maintainer first (issue on github.com/flatpark/flatpark) whether
-         an app installing GitHub tarballs into `~/.local/opt` is listable: their
-         runbook wants writes in the app's own data dir, and "apps that manage the
-         host" are borderline.
-      2. [ ] Packaging model is extra-data: FlatPark's package downloads a release
-         asset (sha256-pinned) and unpacks it in `apply_extra.sh`; it doesn't build
-         from source. Needs a CI-built release tarball of the built `/app` tree
-         (compiled Blueprint/gresource/gschema; check GSettings schema lookup under
-         `/app/extra`). Desktop file, metainfo and icon live in the package itself.
-      3. [ ] Their files: `registry/<id>/flatpark.yml`, `<id>.yml`, `apply_extra.sh`,
-         `.desktop`, `.metainfo.xml`, icon, `resolve-update.sh`; PR branch
-         `add/<app-id>`. Optional `flatpark/publish-action@v1` for instant updates.
-      Trust note: a single maintainer (@jing2uo) merges and owns the signing
-      infrastructure; the wrapper (manifest, `apply_extra.sh`, finish-args) is
-      theirs, so review changes to `registry/io.github.davideb263.Tarseer/`.
 - [ ] **Custom app Icon picking** Let the user pick a custom icon for the .desktop file.
       Put an option to pick a custom icon near or in the already existing dropdown where
       you choose between different icons in the app folder.
@@ -67,8 +35,7 @@ is asking its maintainer (see the FlatPark item below).
 
 - [ ] **Updates for Tarseer itself: self-hosted Flatpak repo on GitHub Pages**
       (planned 2026-11-25). Safest distribution option: only Davide builds and
-      signs; `flatpak update` picks up new releases. Doesn't rule out FlatPark/Flathub
-      later (each install updates from the remote it came from).
+      signs; `flatpak update` picks up new releases.
       1. [x] Signing key made by Davide (fingerprint `C751…E9FEC5A1`, backup in his
          password manager), public half in `data/flatpak/tarseer.gpg`; secret
          `GPG_PRIVATE_KEY` in the `github-pages` environment (only `v*` tags and

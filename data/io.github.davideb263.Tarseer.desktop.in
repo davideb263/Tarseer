@@ -6,7 +6,6 @@ Icon=io.github.davideb263.Tarseer
 Terminal=false
 Type=Application
 Categories=GTK;GNOME;Utility;PackageManager;
-# Translators: search terms separated by semicolons, not a word-for-word list: add or drop terms as fits your language. Keep the final semicolon.
 Keywords=tarball;tar;github;release;update;installer;
 StartupNotify=true
 DBusActivatable=true

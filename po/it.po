@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: tarseer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-25 09:32+0100\n"
+"POT-Creation-Date: 2026-11-25 10:26+0100\n"
 "PO-Revision-Date: 2026-11-25 09:31+0100\n"
 "Last-Translator: Davide Botter\n"
 "Language-Team: none\n"
@@ -25,7 +25,8 @@ msgstr "Tarseer"
 msgid "Install and update apps distributed as tarballs on GitHub"
 msgstr "Installa e aggiorna le applicazioni distribuite come tarball su GitHub"
 
-#: data/io.github.davideb263.Tarseer.desktop.in:9
+#. Translators: search terms separated by semicolons, not a word-for-word list: add or drop terms as fits your language. Keep the final semicolon.
+#: data/io.github.davideb263.Tarseer.desktop.in:10
 msgid "tarball;tar;github;release;update;installer;"
 msgstr "tarball;tar;github;release;update;installer;aggiornamento;aggiornare;installare;"
 

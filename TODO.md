@@ -61,7 +61,7 @@ Tarseer targets GNOME; see README "Known limitations". If support is broadened:
 
 ## Done
 - [x] v1.0.0: translations (Italian first), store metadata and screenshots,
-      install instructions in README; Flathub left for later (`RELEASE_COMMIT`).
+      install instructions in README; Flathub left for later (`05d8350`).
 - [x] **Translations:** `po/` + Meson i18n, core messages translatable
       (`core/i18n.py`), Italian translation (208 strings). Verified in the
       Flatpak with `LANG=it_IT.UTF-8`: main window, Add App, details, remove

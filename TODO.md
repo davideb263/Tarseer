@@ -60,6 +60,11 @@ Tarseer targets GNOME; see README "Known limitations". If support is broadened:
 - [ ] **GNOME-specific wording** ("app grid", …) in labels: make it neutral.
 
 ## Done
+- [x] Fixes from the 2026-11-25 code and security reviews of `main..dev`:
+      English throughout when the system locale is missing (no half-translated
+      window), remaining untranslated errors and the menu entry comment,
+      whole HTTP error messages instead of combined fragments, no `!r`
+      placeholders, no `_` throwaway names (`4d3ae23`).
 - [x] v1.0.0: translations (Italian first), store metadata and screenshots,
       install instructions in README; Flathub left for later (`05d8350`).
 - [x] **Translations:** `po/` + Meson i18n, core messages translatable

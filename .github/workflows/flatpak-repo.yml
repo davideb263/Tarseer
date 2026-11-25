@@ -1,0 +1,174 @@
+# Builds Tarseer, signs it and publishes the Flatpak repository on GitHub Pages
+# (https://davideb263.github.io/Tarseer/). On a release it also attaches the
+# .flatpak bundle to it.
+#
+# The signing key is the GPG_PRIVATE_KEY secret of the github-pages
+# environment, which only v* tags and main can use. Its public half is
+# data/flatpak/tarseer.gpg, also embedded in the .flatpakrepo/.flatpakref.
+#
+# The repository is rebuilt from scratch on every run: it only ever holds the
+# latest release. Older versions stay available as bundles on the Releases page.
+
+name: Flatpak repository
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: flatpak-repo
+  cancel-in-progress: false
+
+env:
+  APP_ID: io.github.davideb263.Tarseer
+  FLATPAK_BRANCH: master
+  SITE_URL: https://davideb263.github.io/Tarseer
+  # Fingerprint of the key in data/flatpak/tarseer.gpg
+  GPG_FINGERPRINT: C7511C2EC2C4AFD0827ECCE11C07BF71E9FEC5A1
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+
+      - name: Unit tests
+        run: PYTHONPATH=src python3 -m unittest discover -s tests -t .
+
+      - name: Check that the versions agree
+        id: version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          meson=$(sed -n "s/^ *version: '\(.*\)',/\1/p" meson.build | head -n1)
+          metainfo=$(grep -o '<release version="[^"]*"' data/$APP_ID.metainfo.xml.in | head -n1 | cut -d'"' -f2)
+          echo "meson.build: $meson, metainfo: $metainfo, tag: ${TAG:-none}"
+          [ -n "$meson" ] && [ "$meson" = "$metainfo" ] || { echo "::error::meson.build and the newest metainfo release differ"; exit 1; }
+          if [ -n "$TAG" ] && [ "$TAG" != "v$meson" ]; then
+            echo "::error::Tag $TAG doesn't match version $meson"; exit 1
+          fi
+          echo "version=$meson" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    # Only for the signing key; the deployment itself happens in "deploy".
+    environment: github-pages
+    permissions:
+      contents: read
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51
+      options: --privileged
+    env:
+      VERSION: ${{ needs.test.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Import the signing key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          export GNUPGHOME="$RUNNER_TEMP/gnupg"
+          install -d -m 700 "$GNUPGHOME"
+          printf '%s\n' "$GPG_PRIVATE_KEY" | gpg --batch --quiet --import
+          # The secret must be the key whose public half users trust.
+          gpg --batch --list-secret-keys --with-colons | grep -q "^fpr:::::::::$GPG_FINGERPRINT:" \
+            || { echo "::error::The secret key doesn't match data/flatpak/tarseer.gpg"; exit 1; }
+          echo "GNUPGHOME=$GNUPGHOME" >> "$GITHUB_ENV"
+
+      - name: Build and sign
+        run: |
+          flatpak-builder --repo=repo --force-clean --disable-rofiles-fuse \
+            --default-branch="$FLATPAK_BRANCH" \
+            --gpg-sign="$GPG_FINGERPRINT" --gpg-homedir="$GNUPGHOME" \
+            build-dir "$APP_ID.json"
+          flatpak build-update-repo --generate-static-deltas \
+            --title=Tarseer --default-branch="$FLATPAK_BRANCH" \
+            --gpg-sign="$GPG_FINGERPRINT" --gpg-homedir="$GNUPGHOME" \
+            repo
+
+      - name: Build the bundle
+        run: |
+          # --repo-url and --gpg-keys make bundle installs update from the repository.
+          flatpak build-bundle \
+            --repo-url="$SITE_URL/repo/" \
+            --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo \
+            --gpg-keys=data/flatpak/tarseer.gpg \
+            --gpg-sign="$GPG_FINGERPRINT" --gpg-homedir="$GNUPGHOME" \
+            repo "Tarseer-$VERSION.flatpak" "$APP_ID" "$FLATPAK_BRANCH"
+
+      - name: Remove the signing key
+        if: always()
+        run: |
+          [ -n "${GNUPGHOME:-}" ] || exit 0
+          gpgconf --kill gpg-agent || true
+          rm -rf "$GNUPGHOME"
+
+      - name: Assemble the site
+        run: |
+          mkdir site
+          cp -a repo site/repo
+          rm -rf site/repo/tmp site/repo/.lock
+          cp data/flatpak/tarseer.flatpakrepo \
+             "data/flatpak/$APP_ID.flatpakref" \
+             data/flatpak/index.html \
+             "data/icons/hicolor/scalable/apps/$APP_ID.svg" \
+             site/
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bundle
+          path: Tarseer-${{ env.VERSION }}.flatpak
+          if-no-files-found: error
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  # A separate job, so the one write permission on the repository never runs
+  # next to the signing key.
+  release-asset:
+    needs: [test, deploy]
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: bundle
+
+      - name: Attach the bundle to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+          VERSION: ${{ needs.test.outputs.version }}
+        run: gh release upload "$TAG" "Tarseer-$VERSION.flatpak" --clobber --repo "$GITHUB_REPOSITORY"

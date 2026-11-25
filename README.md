@@ -30,9 +30,9 @@ releases of your tarballs as soon as they come out.
   <img src="data/screenshots/main.png" width="600" alt="Tarseer's main window: three apps, two with updates waiting">
 </p>
 
-> **Status:** 1.0.1. Tarseer isn't on Flathub: install the `.flatpak` bundle
-> from the [Releases](https://github.com/davideb263/Tarseer/releases) page (see
-> [Installing](#installing)). See [TODO.md](TODO.md) for what's planned.
+> **Status:** 1.0.1. Tarseer isn't on Flathub: install it from its own Flatpak
+> repository (see [Installing](#installing)). See [TODO.md](TODO.md) for what's
+> planned.
 
 ## Features
 
@@ -81,19 +81,28 @@ Supported formats: `.tar.gz`/`.tgz`, `.tar.xz`/`.txz`, `.tar.bz2`/`.tbz2`,
 
 ## Installing
 
-Download `Tarseer-<version>.flatpak` from the
-[latest release](https://github.com/davideb263/Tarseer/releases/latest) and run:
-
 ```sh
-flatpak install --user Tarseer-<version>.flatpak
+flatpak install --user https://davideb263.github.io/Tarseer/io.github.davideb263.Tarseer.flatpakref
 ```
 
-Flatpak fetches the GNOME runtime from Flathub if you don't have it yet. The
-bundle doesn't update itself. To upgrade, install the new release's bundle
-with `--reinstall` (your apps and settings are kept):
+This adds Tarseer's Flatpak repository (as the `tarseer` remote) and installs
+the app. Flatpak fetches the GNOME runtime from Flathub if you don't have it
+yet. From then on, new versions arrive with `flatpak update` or your software
+center, like any other Flatpak. Every build is made by
+[GitHub Actions](.github/workflows/flatpak-repo.yml) from this repository and
+signed with the key in [`data/flatpak/tarseer.gpg`](data/flatpak/tarseer.gpg)
+(fingerprint `C751 1C2E C2C4 AFD0 827E  CCE1 1C07 BF71 E9FE C5A1`).
+
+**Offline or one-off install:** each
+[release](https://github.com/davideb263/Tarseer/releases/latest) also has a
+`Tarseer-<version>.flatpak` bundle (`flatpak install --user Tarseer-<version>.flatpak`).
+Bundles from 1.0.2 on update from the repository too.
+
+**Installed a bundle of 1.0.1 or older?** Those don't update. Switch to the
+repository once with `--reinstall` (your apps and settings are kept):
 
 ```sh
-flatpak install --user --reinstall Tarseer-<version>.flatpak
+flatpak install --user --reinstall https://davideb263.github.io/Tarseer/io.github.davideb263.Tarseer.flatpakref
 ```
 
 ## Where things go

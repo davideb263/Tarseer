@@ -11,3 +11,13 @@ __pycache__/
 
 # AI
 .claude/
+
+# Signing keys: only the public key (data/flatpak/tarseer.gpg) is committed
+*.asc
+*.key
+*.sec
+*secret*
+.gnupg/
+
+# Flatpak repo site assembled by CI (or a local test run)
+site/

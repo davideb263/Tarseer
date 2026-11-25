@@ -1,0 +1,11 @@
+[Flatpak Ref]
+Name=io.github.davideb263.Tarseer
+Branch=master
+Title=Tarseer
+Url=https://davideb263.github.io/Tarseer/repo/
+SuggestRemoteName=tarseer
+Homepage=https://github.com/davideb263/Tarseer
+Icon=https://davideb263.github.io/Tarseer/io.github.davideb263.Tarseer.svg
+RuntimeRepo=https://dl.flathub.org/repo/flathub.flatpakrepo
+IsRuntime=false
+GPGKey=mDMEawbwJBYJKwYBBAHaRw8BAQdAn6YfxSImWFHwGGYNZcMEFu8LVEjuI+WRu+1o05Wppv60FFRhcnNlZXIgRmxhdHBhayByZXBviJMEExYKADsWIQTHURwuwsSv0IJ+zOEcB79x6f7FoQUCawbwJAIbAwULCQgHAgIiAgYVCgkICwIEFgIDAQIeBwIXgAAKCRAcB79x6f7FoTxJAP900nbbo4wHtCBRvTV8IJEeuf5+pIcWwC8ENW0PbE3pTwD+LIEL1XFuHRQhBdY88i/Tn45Jj2ePLNPkPX+pmc6SmQM=

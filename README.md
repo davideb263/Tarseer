@@ -89,7 +89,12 @@ flatpak install --user Tarseer-<version>.flatpak
 ```
 
 Flatpak fetches the GNOME runtime from Flathub if you don't have it yet. The
-bundle doesn't update itself: install the next release's bundle the same way.
+bundle doesn't update itself. To upgrade, install the new release's bundle
+with `--reinstall` (your apps and settings are kept):
+
+```sh
+flatpak install --user --reinstall Tarseer-<version>.flatpak
+```
 
 ## Where things go
 

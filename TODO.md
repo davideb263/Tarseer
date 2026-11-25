@@ -60,7 +60,7 @@ Tarseer targets GNOME; see README "Known limitations". If support is broadened:
 - [ ] **GNOME-specific wording** ("app grid", …) in labels: make it neutral.
 
 ## Done
-- [x] v1.0.1: new app icon without the empty margin, 128×128 (`RELEASE_COMMIT`).
+- [x] v1.0.1: new app icon without the empty margin, 128×128 (`1e8aecc`).
 - [x] Fixes from the 2026-11-25 code and security reviews of `main..dev`:
       English throughout when the system locale is missing (no half-translated
       window), remaining untranslated errors and the menu entry comment,

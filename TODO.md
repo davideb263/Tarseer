@@ -5,7 +5,8 @@ Ideas and known issues for after v1. Keep this file current: move items to
 found while working.
 
 ## Next up
-Planned for the next release: translations + Flathub as a "v1.0 readiness" release.
+Nothing planned yet. Flathub is on hold (Davide decides later; see the
+Flathub item below).
 
 ## Features
 - [ ] **Multiple app grid entries per app**, e.g. Calibre's E-book Viewer and
@@ -18,7 +19,7 @@ Planned for the next release: translations + Flathub as a "v1.0 readiness" relea
       instead of reinstalling.
 - [ ] **More languages** beyond Italian (Claude can draft them; ideally a native
       speaker reviews before release). See README "Translations".
-- [ ] **Flathub submission.** Done so far: screenshots (`data/screenshots/`, URLs
+- [ ] **Flathub submission (on hold since 2026-11-25).** Done so far: screenshots (`data/screenshots/`, URLs
       pinned to the `v1.0.0` tag, so they resolve only once it is pushed), store
       description, branding colors, permissions explained in README; linter clean
       except screenshot reachability. Flathub's Generative AI policy (checked
@@ -43,6 +44,10 @@ Planned for the next release: translations + Flathub as a "v1.0 readiness" relea
       tooltip. Consider an "error details" action. (Rate limit and rejected
       token errors are already alerts, shown once per check.)
 
+- [ ] **Updates for Tarseer itself:** a self-hosted Flatpak repository (e.g. on
+      GitHub Pages) with a `.flatpakrepo`, so `flatpak update` picks up new
+      releases instead of installing each bundle by hand.
+
 ## Other desktops (low priority)
 Tarseer targets GNOME; see README "Known limitations". If support is broadened:
 - [ ] **Test on KDE Plasma and a tiling WM** (e.g. Sway) in a VM or second session;
@@ -55,6 +60,8 @@ Tarseer targets GNOME; see README "Known limitations". If support is broadened:
 - [ ] **GNOME-specific wording** ("app grid", …) in labels: make it neutral.
 
 ## Done
+- [x] v1.0.0: translations (Italian first), store metadata and screenshots,
+      install instructions in README; Flathub left for later (`RELEASE_COMMIT`).
 - [x] **Translations:** `po/` + Meson i18n, core messages translatable
       (`core/i18n.py`), Italian translation (208 strings). Verified in the
       Flatpak with `LANG=it_IT.UTF-8`: main window, Add App, details, remove

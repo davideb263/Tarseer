@@ -26,8 +26,13 @@ Tarseer does this for you. It's a GNOME app (GTK4 + libadwaita), similar to
 **seer**, someone who sees what others miss. With eyes like that, it spots new
 releases of your tarballs as soon as they come out.
 
-> **Status:** early development (0.3.0). It works, but it isn't on Flathub
-> yet. See [TODO.md](TODO.md) for what's planned.
+<p align="center">
+  <img src="data/screenshots/main.png" width="600" alt="Tarseer's main window: three apps, two with updates waiting">
+</p>
+
+> **Status:** 1.0.0. Tarseer isn't on Flathub: install the `.flatpak` bundle
+> from the [Releases](https://github.com/davideb263/Tarseer/releases) page (see
+> [Installing](#installing)). See [TODO.md](TODO.md) for what's planned.
 
 ## Features
 
@@ -73,6 +78,18 @@ releases of your tarballs as soon as they come out.
 
 Supported formats: `.tar.gz`/`.tgz`, `.tar.xz`/`.txz`, `.tar.bz2`/`.tbz2`,
 `.tar.zst`/`.tzst` and plain `.tar`.
+
+## Installing
+
+Download `Tarseer-<version>.flatpak` from the
+[latest release](https://github.com/davideb263/Tarseer/releases/latest) and run:
+
+```sh
+flatpak install --user Tarseer-<version>.flatpak
+```
+
+Flatpak fetches the GNOME runtime from Flathub if you don't have it yet. The
+bundle doesn't update itself: install the next release's bundle the same way.
 
 ## Where things go
 

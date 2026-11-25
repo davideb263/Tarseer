@@ -58,6 +58,15 @@
   <launchable type="desktop-id">io.github.davideb263.Tarseer.desktop</launchable>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.0.0" date="2026-11-25">
+      <description translate="no">
+        <p>Tarseer now speaks your language, starting with Italian.</p>
+        <ul>
+          <li>Translations: Italian is the first, and the whole interface, including error messages, can be translated</li>
+          <li>A fuller description and screenshots for software stores</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.3.0" date="2026-11-24">
       <description translate="no">
         <p>Tarseer can now check for updates on its own and tell you when there are new versions.</p>

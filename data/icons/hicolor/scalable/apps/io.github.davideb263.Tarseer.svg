@@ -1,44 +1,64 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 720 720">
-  <title>Tarseer Icon</title>
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128px" height="128px" viewBox="112 127 548 474">
+  <title>Mascotte con scatola</title>
   <defs>
     <linearGradient id="tail" x1="0" x2=".3" y2="1">
-      <stop stop-color="#bc804b"/><stop offset=".56" stop-color="#9f6438"/><stop offset="1" stop-color="#673e26"/>
+      <stop stop-color="#bc804b"/>
+      <stop offset="0.56" stop-color="#9f6438"/>
+      <stop offset="1" stop-color="#673e26"/>
     </linearGradient>
     <linearGradient id="outer-ear" x1=".2" y1="0" x2=".76" y2="1">
-      <stop stop-color="#ae7545"/><stop offset="1" stop-color="#875634"/>
+      <stop stop-color="#ae7545"/>
+      <stop offset="1" stop-color="#875634"/>
     </linearGradient>
     <linearGradient id="inner-ear" x1="0" x2=".7" y2="1">
-      <stop stop-color="#d08e5d"/><stop offset="1" stop-color="#dfa573"/>
+      <stop stop-color="#d08e5d"/>
+      <stop offset="1" stop-color="#dfa573"/>
     </linearGradient>
     <linearGradient id="ear-shadow" x2=".7" y2="1">
-      <stop stop-color="#ae7045"/><stop offset="1" stop-color="#bc7e51"/>
+      <stop stop-color="#ae7045"/>
+      <stop offset="1" stop-color="#bc7e51"/>
     </linearGradient>
     <radialGradient id="head" cx=".48" cy=".22" r=".83">
-      <stop stop-color="#b77b47"/><stop offset=".58" stop-color="#af7443"/><stop offset=".87" stop-color="#a2673c"/><stop offset="1" stop-color="#77472c"/>
+      <stop stop-color="#b77b47"/>
+      <stop offset="0.58" stop-color="#af7443"/>
+      <stop offset="0.87" stop-color="#a2673c"/>
+      <stop offset="1" stop-color="#77472c"/>
     </radialGradient>
     <linearGradient id="eye-ring" x2="0" y2="1">
-      <stop stop-color="#fbd08e"/><stop offset="1" stop-color="#f6d9a5"/>
+      <stop stop-color="#fbd08e"/>
+      <stop offset="1" stop-color="#f6d9a5"/>
     </linearGradient>
     <radialGradient id="eye" cx=".48" cy=".44" r=".67">
-      <stop offset=".68" stop-color="#262218"/><stop offset=".75" stop-color="#2c271c"/><stop offset="1" stop-color="#1b170f"/>
+      <stop offset="0.68" stop-color="#262218"/>
+      <stop offset="0.75" stop-color="#2c271c"/>
+      <stop offset="1" stop-color="#1b170f"/>
     </radialGradient>
     <radialGradient id="nose" cx=".49" cy=".25" r=".75">
-      <stop stop-color="#cd8a58"/><stop offset="1" stop-color="#a56b43"/>
+      <stop stop-color="#cd8a58"/>
+      <stop offset="1" stop-color="#a56b43"/>
     </radialGradient>
     <linearGradient id="lid" x2=".96" y2=".42">
-      <stop stop-color="#efd09a"/><stop offset=".52" stop-color="#f2cf95"/><stop offset="1" stop-color="#e8bf85"/>
+      <stop stop-color="#efd09a"/>
+      <stop offset="0.52" stop-color="#f2cf95"/>
+      <stop offset="1" stop-color="#e8bf85"/>
     </linearGradient>
     <linearGradient id="box" x1=".08" y1="0" x2=".98" y2=".71">
-      <stop stop-color="#e9bf85"/><stop offset=".52" stop-color="#ddb075"/><stop offset="1" stop-color="#cd995e"/>
+      <stop stop-color="#e9bf85"/>
+      <stop offset="0.52" stop-color="#ddb075"/>
+      <stop offset="1" stop-color="#cd995e"/>
     </linearGradient>
     <linearGradient id="tape" x2="0" y2="1">
-      <stop stop-color="#8b6a3e"/><stop offset="1" stop-color="#88673c"/>
+      <stop stop-color="#8b6a3e"/>
+      <stop offset="1" stop-color="#88673c"/>
     </linearGradient>
     <linearGradient id="finger" x1=".25" x2=".76" y2="1">
-      <stop stop-color="#c18456"/><stop offset="1" stop-color="#ad6f45"/>
+      <stop stop-color="#c18456"/>
+      <stop offset="1" stop-color="#ad6f45"/>
     </linearGradient>
     <linearGradient id="hand" x2=".75" y2="1">
-      <stop stop-color="#ad7047"/><stop offset="1" stop-color="#8a5333"/>
+      <stop stop-color="#ad7047"/>
+      <stop offset="1" stop-color="#8a5333"/>
     </linearGradient>
   </defs>
   <g id="coda">

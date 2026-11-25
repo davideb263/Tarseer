@@ -30,7 +30,7 @@ releases of your tarballs as soon as they come out.
   <img src="data/screenshots/main.png" width="600" alt="Tarseer's main window: three apps, two with updates waiting">
 </p>
 
-> **Status:** 1.0.0. Tarseer isn't on Flathub: install the `.flatpak` bundle
+> **Status:** 1.0.1. Tarseer isn't on Flathub: install the `.flatpak` bundle
 > from the [Releases](https://github.com/davideb263/Tarseer/releases) page (see
 > [Installing](#installing)). See [TODO.md](TODO.md) for what's planned.
 

@@ -14,6 +14,7 @@ from typing import Callable
 from . import config, desktop, github, installer
 from .assets import match_asset, validate_pattern
 from .desktop import DesktopConflictError
+from .i18n import _
 from .installer import InstallError
 from .release_cache import ReleaseCache
 from .models import CheckResult, ManagedApp, Paths, Release, is_valid_id
@@ -56,7 +57,7 @@ class AppManager:
         # An id like "" or "../x" would point at the install root itself, or
         # outside it: remove() would then delete far more than one app.
         if not is_valid_id(app.id):
-            raise InstallError(f"Invalid app id: {app.id!r}")
+            raise InstallError(_("Invalid app id: {id!r}").format(id=app.id))
         return self.paths.install_root / app.id
 
     def can_rollback(self, app: ManagedApp) -> bool:
@@ -200,7 +201,8 @@ class AppManager:
         asset = match_asset(release.assets, app.asset_pattern)
         if asset is None:
             raise InstallError(
-                f"No file in release {release.tag} matches the pattern {app.asset_pattern}"
+                _("No file in release {tag} matches the pattern {pattern}").format(
+                    tag=release.tag, pattern=app.asset_pattern)
             )
 
         root = self.paths.install_root
@@ -233,7 +235,8 @@ class AppManager:
             try:
                 warnings = self._write_launcher(app)
             except OSError as e:
-                warnings = [f"Could not create the app grid entry for {app.name}: {e}"]
+                warnings = [_("Could not create the app grid entry for {name}: {error}").format(
+                    name=app.name, error=e)]
             is_new = app.id not in self._apps
             self._apps[app.id] = app
             try:
@@ -242,12 +245,13 @@ class AppManager:
                 if not is_new:
                     # The new version is in place; the next successful save records it.
                     return warnings + [
-                        f"{app.name} was updated to {release.tag}, but its settings could "
-                        f"not be saved ({e}). After a restart it may show the old version."
+                        _("{name} was updated to {tag}, but its settings could not be saved "
+                          "({error}). After a restart it may show the old version.").format(
+                            name=app.name, tag=release.tag, error=e)
                     ]
                 self._apps.pop(app.id)
                 self._discard(app)
-                raise InstallError(f"Could not save settings: {e}") from e
+                raise InstallError(_("Could not save settings: {error}").format(error=e)) from e
         return warnings
 
     def rollback(self, app: ManagedApp) -> list[str]:
@@ -275,10 +279,10 @@ class AppManager:
             if rel is None:
                 continue
             if not desktop.is_safe_relpath(rel):
-                raise InstallError(f"{rel!r} can't be used in an app grid entry")
+                raise InstallError(_("{name!r} can't be used in an app grid entry").format(name=rel))
             path = (target / rel).resolve()
             if not path.is_relative_to(target.resolve()) or not path.is_file():
-                raise InstallError(f"{rel} is not a file inside {target}")
+                raise InstallError(_("{name} is not a file inside {folder}").format(name=rel, folder=target))
         with self._lock:
             app.executable, app.icon = executable, icon
             try:
@@ -289,7 +293,7 @@ class AppManager:
     def set_name(self, app: ManagedApp, name: str) -> None:
         name = name.strip()
         if not name:
-            raise ValueError("The name cannot be empty")
+            raise ValueError(_("The name cannot be empty"))
         with self._lock:
             app.name = name
             self._write_launcher(app)  # conflicts were already reported at install time
@@ -372,13 +376,14 @@ class AppManager:
             try:
                 warnings += self._write_launcher(app)
             except OSError as e:
-                warnings.append(f"Could not update the app grid entry for {app.name}: {e}")
+                warnings.append(_("Could not update the app grid entry for {name}: {error}").format(
+                    name=app.name, error=e))
             changed = True
         if changed:
             try:
                 self._save()
             except OSError as e:
-                warnings.append(f"Could not save settings: {e}")
+                warnings.append(_("Could not save settings: {error}").format(error=e))
         return warnings
 
     def _save(self) -> None:

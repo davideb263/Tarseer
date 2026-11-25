@@ -48,6 +48,15 @@ Python + PyGObject, GTK4 + libadwaita 1.10, Blueprint UI files, Meson, Flatpak
 - `data/` — .desktop, metainfo, gschema, icon.
 
 ## Conventions
+- Translations (gettext domain `tarseer`, `po/`): every user-facing string goes
+  through `_()`/`ngettext()` (builtins in `ui/`, `from .i18n import _` in core),
+  with named `{placeholders}` + `.format()`, never f-strings or concatenated
+  sentence fragments. Never use `_` as a throwaway variable (it shadows gettext).
+  New files with strings go in `po/POTFILES.in`; release `<description>`s in the
+  metainfo get `translate="no"`. After changing strings, regenerate the template
+  and merge (`meson compile -C <builddir> tarseer-pot tarseer-update-po` in the SDK),
+  then translate the new/fuzzy entries in every `po/*.po` (check with `msgfmt -c`).
+  Blueprint files need `translation-domain "tarseer";`.
 - Blocking work (network, disk) runs in a worker thread; results go back to the
   UI with `GLib.idle_add`. Never block the GTK main loop.
 - Managed apps install to `~/.local/opt/<id>/`, backup at `~/.local/opt/<id>.bak/`.

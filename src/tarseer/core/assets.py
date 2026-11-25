@@ -5,6 +5,7 @@ from __future__ import annotations
 import platform
 import re
 
+from .i18n import _
 from .models import Asset
 
 TARBALL_SUFFIXES = (
@@ -120,11 +121,11 @@ def selectable_assets(
 def validate_pattern(pattern: str) -> str:
     """Raise ValueError unless `pattern` is a usable regular expression."""
     if not pattern.strip():
-        raise ValueError("The release file pattern cannot be empty")
+        raise ValueError(_("The release file pattern cannot be empty"))
     try:
         re.compile(pattern)
     except re.error as e:
-        raise ValueError(f"Invalid release file pattern {pattern!r}: {e}") from e
+        raise ValueError(_("Invalid release file pattern {pattern!r}: {error}").format(pattern=pattern, error=e)) from e
     return pattern
 
 

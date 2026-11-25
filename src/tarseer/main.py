@@ -50,9 +50,9 @@ class TarseerApplication(Adw.Application):
         self._notification_maybe_shown = True
 
         self.add_main_option("background", 0, GLib.OptionFlags.NONE, GLib.OptionArg.NONE,
-                             "Start without a window and check for updates in the background", None)
+                             _("Start without a window and check for updates in the background"), None)
         self.add_main_option("check-now", 0, GLib.OptionFlags.NONE, GLib.OptionArg.NONE,
-                             "With --background: check right away (for testing)", None)
+                             _("With --background: check right away (for testing)"), None)
         self._create_action("quit", lambda *_: self.quit(), ["<primary>q"])
         self._create_action("about", self._on_about)
         # Clicking the update notification (also starts Tarseer through D-Bus).
@@ -200,7 +200,8 @@ class TarseerApplication(Adw.Application):
             notification.set_body(_("{app} {tag}").format(app=app.name, tag=tag))
         else:
             notification = Gio.Notification.new(
-                _("{n} Updates Available").format(n=len(updates)))
+                ngettext("{n} Update Available", "{n} Updates Available",
+                         len(updates)).format(n=len(updates)))
             names = [app.name for app, _tag in updates]
             body = ", ".join(names[:NOTIFICATION_NAMES])
             if len(names) > NOTIFICATION_NAMES:
@@ -234,10 +235,14 @@ class TarseerApplication(Adw.Application):
             developer_name="Davide Botter",
             version=self.version,
             license_type=Gtk.License.GPL_3_0,
-            comments="Install and update apps distributed as tarballs on GitHub",
+            comments=_("Install and update apps distributed as tarballs on GitHub"),
             website="https://github.com/davideb263/Tarseer",
             issue_url="https://github.com/davideb263/Tarseer/issues",
         )
+        # Translators: your name(s) and e-mail, one per line; shown in About.
+        credits = _("translator-credits")
+        if credits != "translator-credits":  # untranslated: no credits section
+            about.set_translator_credits(credits)
         about.present(self.props.active_window)
 
     def _create_action(self, name, callback, shortcuts=None):

@@ -7,6 +7,7 @@ project('tarseer',
 app_id = 'io.github.davideb263.Tarseer'
 
 gnome = import('gnome')
+i18n = import('i18n')
 python = import('python')
 
 pkgdatadir = get_option('prefix') / get_option('datadir') / meson.project_name()
@@ -14,6 +15,7 @@ pkgdatadir = get_option('prefix') / get_option('datadir') / meson.project_name()
 subdir('data')
 subdir('src')
 subdir('bin')
+subdir('po')
 
 gnome.post_install(
   glib_compile_schemas: true,

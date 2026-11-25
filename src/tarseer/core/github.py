@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
+from .i18n import _
 from .models import Asset, Release
 
 API = "https://api.github.com"
@@ -50,12 +51,12 @@ class NotFoundError(GitHubError):
 class RateLimitError(GitHubError):
     def __init__(self, reset_at: float | None, with_token: bool = False):
         self.reset_at = reset_at
-        message = "GitHub API rate limit reached."
+        message = _("GitHub API rate limit reached.")
         if reset_at:
             minutes = max(1, round((reset_at - time.time()) / 60))
-            message += f" Try again in about {minutes} min."
+            message += " " + _("Try again in about {minutes} min.").format(minutes=minutes)
         if not with_token:
-            message += " Adding a GitHub access token in Preferences raises the limit."
+            message += " " + _("Adding a GitHub access token in Preferences raises the limit.")
         super().__init__(message)
 
 
@@ -63,8 +64,8 @@ class TokenRejectedError(GitHubError):
     """GitHub answered 401: the access token is wrong, expired or revoked."""
 
     def __init__(self):
-        super().__init__("GitHub rejected the access token. It may have expired or been "
-                         "revoked: replace or remove it in Preferences.")
+        super().__init__(_("GitHub rejected the access token. It may have expired or been "
+                           "revoked: replace or remove it in Preferences."))
 
 
 @dataclass(frozen=True)
@@ -88,7 +89,7 @@ class _SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         if urllib.parse.urlsplit(newurl).scheme != "https":
-            raise GitHubError(f"Refused an insecure redirect to {newurl}")
+            raise GitHubError(_("Refused an insecure redirect to {url}").format(url=newurl))
         new = super().redirect_request(req, fp, code, msg, headers, newurl)
         if new is not None and _host(newurl) != _host(req.full_url):
             new.remove_header("Authorization")
@@ -116,7 +117,7 @@ def parse_repo(text: str) -> str:
         repo = repo.removesuffix(".git")
         text = f"{owner}/{repo}"
     if not _REPO_RE.match(text):
-        raise ValueError(f"Not a GitHub repository: {text!r}")
+        raise ValueError(_("Not a GitHub repository: {text!r}").format(text=text))
     return text
 
 
@@ -136,7 +137,7 @@ def release_from_json(data: dict) -> Release:
 def _request(url: str, accept: str, token: str | None = None) -> urllib.request.Request:
     """`token` is only used for API URLs (see `_token`)."""
     if urllib.parse.urlsplit(url).scheme != "https":
-        raise GitHubError(f"Refused to download from a non-HTTPS address: {url}")
+        raise GitHubError(_("Refused to download from a non-HTTPS address: {url}").format(url=url))
     headers = {"Accept": accept, "User-Agent": USER_AGENT}
     if url.startswith(API + "/"):
         headers["X-GitHub-Api-Version"] = "2022-11-28"
@@ -152,8 +153,8 @@ def _translate_http_error(e: urllib.error.HTTPError, what: str, token: str | Non
         reset = e.headers.get("x-ratelimit-reset")
         return RateLimitError(float(reset) if reset else None, with_token=bool(token))
     if e.code == 404:
-        return NotFoundError(f"{what} not found")
-    return GitHubError(f"GitHub returned HTTP {e.code} for {what}")
+        return NotFoundError(_("{what} not found").format(what=what))
+    return GitHubError(_("GitHub returned HTTP {code} for {what}").format(code=e.code, what=what))
 
 
 def get_latest_release(repo: str, timeout: float = 15, cached: Release | None = None) -> Release:
@@ -179,8 +180,8 @@ def get_latest_release(repo: str, timeout: float = 15, cached: Release | None = 
             e.close()  # the usual reply once cached: don't leave its connection to GC
             return cached
         if e.code == 404:
-            raise NotFoundError(f"{repo} has no releases, or the repository does not exist") from e
-        raise _translate_http_error(e, f"Latest release of {repo}", token) from e
+            raise NotFoundError(_("{repo} has no releases, or the repository does not exist").format(repo=repo)) from e
+        raise _translate_http_error(e, _("Latest release of {repo}").format(repo=repo), token) from e
     except urllib.error.URLError as e:
         raise GitHubError(f"Network error: {e.reason}") from e
     except (ValueError, KeyError) as e:
@@ -197,7 +198,7 @@ def get_rate_limit(token: str | None = None, timeout: float = 15) -> RateLimit:
             core = json.load(resp)["resources"]["core"]
             return RateLimit(int(core["limit"]), int(core["remaining"]), float(core["reset"]))
     except urllib.error.HTTPError as e:
-        raise _translate_http_error(e, "Rate limit", token) from e
+        raise _translate_http_error(e, _("Rate limit"), token) from e
     except urllib.error.URLError as e:
         raise GitHubError(f"Network error: {e.reason}") from e
     except (ValueError, KeyError, TypeError) as e:
@@ -218,7 +219,7 @@ def download(
     `size` and `digest` ("sha256:<hex>") are what the API says the file is;
     when given, a download that doesn't match raises GitHubError.
     """
-    algorithm, _, expected_hash = (digest or "").partition(":")
+    algorithm, _sep, expected_hash = (digest or "").partition(":")
     hasher = hashlib.sha256() if algorithm == "sha256" and expected_hash else None
     try:
         with _urlopen(_request(url, "application/octet-stream"), timeout=timeout) as resp, \
@@ -230,18 +231,18 @@ def download(
                     raise CancelledError()
                 done += len(chunk)
                 if size and done > size:
-                    raise GitHubError(f"Download is larger than the {size} bytes GitHub announced")
+                    raise GitHubError(_("Download is larger than the {size} bytes GitHub announced").format(size=size))
                 out.write(chunk)
                 if hasher:
                     hasher.update(chunk)
                 if progress:
                     progress(done, total)
         if total and done != total:
-            raise GitHubError(f"Download incomplete: got {done} of {total} bytes")
+            raise GitHubError(_("Download incomplete: got {done} of {total} bytes").format(done=done, total=total))
         if hasher and hasher.hexdigest() != expected_hash.lower():
-            raise GitHubError("The downloaded file doesn't match the checksum GitHub published "
-                              "for it. Try again later.")
+            raise GitHubError(_("The downloaded file doesn't match the checksum GitHub published "
+                                "for it. Try again later."))
     except urllib.error.HTTPError as e:
-        raise _translate_http_error(e, "Download") from e
+        raise _translate_http_error(e, _("Download")) from e
     except urllib.error.URLError as e:
         raise GitHubError(f"Network error: {e.reason}") from e

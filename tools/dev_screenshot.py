@@ -10,10 +10,16 @@ Background checks: settings for a dev root are in "$DEV/settings.ini" (group [ta
 
 import argparse
 import gettext
+import locale
 import sys
 import time
 
-gettext.install("tarseer", names=["ngettext"])
+# Same translation setup as bin/tarseer.in (run with e.g. --env=LANGUAGE=it).
+locale.setlocale(locale.LC_ALL, "")
+for module in (locale, gettext):
+    module.bindtextdomain("tarseer", "/app/share/locale")
+    module.textdomain("tarseer")
+gettext.install("tarseer", "/app/share/locale", names=["ngettext"])
 sys.path.insert(1, "/app/share/tarseer")
 
 import gi  # noqa: E402

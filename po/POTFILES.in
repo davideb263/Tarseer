@@ -1,0 +1,26 @@
+# Files with translatable strings. Keep sorted; list new .py/.blp files here.
+data/io.github.davideb263.Tarseer.desktop.in
+data/io.github.davideb263.Tarseer.metainfo.xml.in
+src/tarseer/core/assets.py
+src/tarseer/core/config.py
+src/tarseer/core/desktop.py
+src/tarseer/core/github.py
+src/tarseer/core/installer.py
+src/tarseer/core/manager.py
+src/tarseer/main.py
+src/tarseer/ui/add_dialog.blp
+src/tarseer/ui/add_dialog.py
+src/tarseer/ui/alerts.py
+src/tarseer/ui/app_row.blp
+src/tarseer/ui/app_row.py
+src/tarseer/ui/asset_list.py
+src/tarseer/ui/background.py
+src/tarseer/ui/details_dialog.blp
+src/tarseer/ui/details_dialog.py
+src/tarseer/ui/launcher_choices.py
+src/tarseer/ui/preferences_dialog.blp
+src/tarseer/ui/preferences_dialog.py
+src/tarseer/ui/release_file_dialog.blp
+src/tarseer/ui/release_file_dialog.py
+src/tarseer/ui/window.blp
+src/tarseer/ui/window.py

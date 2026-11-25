@@ -1,0 +1,1034 @@
+# Italian translations for tarseer package
+# Traduzioni italiane per il pacchetto tarseer.
+# Copyright (C) 2026 THE tarseer'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the tarseer package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: tarseer\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-25 09:32+0100\n"
+"PO-Revision-Date: 2026-11-25 09:31+0100\n"
+"Last-Translator: Davide Botter\n"
+"Language-Team: none\n"
+"Language: it\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: data/io.github.davideb263.Tarseer.desktop.in:2 src/tarseer/ui/window.blp:7
+msgid "Tarseer"
+msgstr "Tarseer"
+
+#: data/io.github.davideb263.Tarseer.desktop.in:3 src/tarseer/main.py:238
+msgid "Install and update apps distributed as tarballs on GitHub"
+msgstr "Installa e aggiorna le applicazioni distribuite come tarball su GitHub"
+
+#: data/io.github.davideb263.Tarseer.desktop.in:9
+msgid "tarball;tar;github;release;update;installer;"
+msgstr "tarball;tar;github;release;update;installer;aggiornamento;aggiornare;installare;"
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:7
+msgid "Install and update tarball apps from GitHub"
+msgstr "Installa e aggiorna applicazioni tarball da GitHub"
+
+#: data/io.github.davideb263.Tarseer.metainfo.xml.in:9
+msgid ""
+"Tarseer installs applications distributed as tarballs on GitHub Releases, "
+"adds them to your app grid, and keeps them up to date."
+msgstr ""
+"Tarseer installa le applicazioni distribuite come tarball nelle release di "
+"GitHub, le aggiunge alla griglia delle applicazioni e le mantiene aggiornate."
+
+#: src/tarseer/core/assets.py:124
+msgid "The release file pattern cannot be empty"
+msgstr "Lo schema del file della release non può essere vuoto"
+
+#: src/tarseer/core/assets.py:128
+msgid "Invalid release file pattern {pattern!r}: {error}"
+msgstr "Schema del file della release {pattern!r} non valido: {error}"
+
+#: src/tarseer/core/config.py:27
+#, python-brace-format
+msgid "Could not read {path}: {error}"
+msgstr "Impossibile leggere {path}: {error}"
+
+#: src/tarseer/core/config.py:30
+msgid "Could not read {path}: invalid app id {id!r}"
+msgstr "Impossibile leggere {path}: ID applicazione {id!r} non valido"
+
+#: src/tarseer/core/desktop.py:196
+#, python-brace-format
+msgid ""
+"{path} already exists and was not created by Tarseer. Remove or rename it so "
+"Tarseer can add {name} to the app grid."
+msgstr ""
+"{path} esiste già e non è stato creato da Tarseer. Rimuovilo o rinominalo "
+"per permettere a Tarseer di aggiungere {name} alla griglia delle "
+"applicazioni."
+
+#: src/tarseer/core/desktop.py:221
+msgid "App has no executable set"
+msgstr "L'applicazione non ha un eseguibile impostato"
+
+#: src/tarseer/core/desktop.py:224
+msgid "Unusable file name for a menu entry: {name!r}"
+msgstr "Nome di file non utilizzabile per una voce del menu: {name!r}"
+
+#: src/tarseer/core/github.py:54
+msgid "GitHub API rate limit reached."
+msgstr "Raggiunto il limite di richieste all'API di GitHub."
+
+#: src/tarseer/core/github.py:57
+#, python-brace-format
+msgid "Try again in about {minutes} min."
+msgstr "Riprova tra circa {minutes} min."
+
+#: src/tarseer/core/github.py:59
+msgid "Adding a GitHub access token in Preferences raises the limit."
+msgstr ""
+"Aggiungendo un token di accesso GitHub nelle Preferenze il limite aumenta."
+
+#: src/tarseer/core/github.py:67
+msgid ""
+"GitHub rejected the access token. It may have expired or been revoked: "
+"replace or remove it in Preferences."
+msgstr ""
+"GitHub ha rifiutato il token di accesso. Potrebbe essere scaduto o revocato: "
+"sostituiscilo o rimuovilo nelle Preferenze."
+
+#: src/tarseer/core/github.py:92
+#, python-brace-format
+msgid "Refused an insecure redirect to {url}"
+msgstr "Rifiutato un reindirizzamento non sicuro a {url}"
+
+#: src/tarseer/core/github.py:120
+msgid "Not a GitHub repository: {text!r}"
+msgstr "Non è un repository GitHub: {text!r}"
+
+#: src/tarseer/core/github.py:140
+#, python-brace-format
+msgid "Refused to download from a non-HTTPS address: {url}"
+msgstr "Rifiutato lo scaricamento da un indirizzo non HTTPS: {url}"
+
+#: src/tarseer/core/github.py:156
+#, python-brace-format
+msgid "{what} not found"
+msgstr "{what}: non trovato"
+
+#: src/tarseer/core/github.py:157
+#, python-brace-format
+msgid "GitHub returned HTTP {code} for {what}"
+msgstr "GitHub ha risposto HTTP {code} per {what}"
+
+#: src/tarseer/core/github.py:183
+#, python-brace-format
+msgid "{repo} has no releases, or the repository does not exist"
+msgstr "{repo} non ha release, oppure il repository non esiste"
+
+#: src/tarseer/core/github.py:184
+#, python-brace-format
+msgid "Latest release of {repo}"
+msgstr "Ultima release di {repo}"
+
+#: src/tarseer/core/github.py:201
+msgid "Rate limit"
+msgstr "Limite di richieste"
+
+#: src/tarseer/core/github.py:234
+#, python-brace-format
+msgid "Download is larger than the {size} bytes GitHub announced"
+msgstr "Il file scaricato è più grande dei {size} byte indicati da GitHub"
+
+#: src/tarseer/core/github.py:241
+#, python-brace-format
+msgid "Download incomplete: got {done} of {total} bytes"
+msgstr "Scaricamento incompleto: ricevuti {done} di {total} byte"
+
+#: src/tarseer/core/github.py:243
+msgid ""
+"The downloaded file doesn't match the checksum GitHub published for it. Try "
+"again later."
+msgstr ""
+"Il file scaricato non corrisponde al checksum pubblicato da GitHub. Riprova "
+"più tardi."
+
+#: src/tarseer/core/github.py:246
+msgid "Download"
+msgstr "Scaricamento"
+
+#: src/tarseer/core/installer.py:80
+msgid "Not enough disk space to unpack the archive"
+msgstr "Spazio su disco insufficiente per estrarre l'archivio"
+
+#: src/tarseer/core/installer.py:82
+#, python-brace-format
+msgid "Archive contains an unsafe file: {error}"
+msgstr "L'archivio contiene un file non sicuro: {error}"
+
+#: src/tarseer/core/installer.py:84
+#, python-brace-format
+msgid "Could not extract archive: {error}"
+msgstr "Impossibile estrarre l'archivio: {error}"
+
+#: src/tarseer/core/installer.py:98
+msgid "Archive contains an unsafe file: {name!r} links outside the app folder"
+msgstr ""
+"L'archivio contiene un file non sicuro: {name!r} punta fuori dalla cartella "
+"dell'applicazione"
+
+#: src/tarseer/core/installer.py:129
+msgid "Archive is empty"
+msgstr "L'archivio è vuoto"
+
+#: src/tarseer/core/installer.py:160
+#, python-brace-format
+msgid "Could not move new version into place: {error}"
+msgstr "Impossibile spostare la nuova versione al suo posto: {error}"
+
+#: src/tarseer/core/installer.py:171
+msgid "No previous version to roll back to"
+msgstr "Nessuna versione precedente a cui tornare"
+
+#: src/tarseer/core/installer.py:181 src/tarseer/core/installer.py:188
+#, python-brace-format
+msgid "Could not switch versions: {error}"
+msgstr "Impossibile cambiare versione: {error}"
+
+#: src/tarseer/core/manager.py:60
+msgid "Invalid app id: {id!r}"
+msgstr "ID applicazione non valido: {id!r}"
+
+#: src/tarseer/core/manager.py:204
+#, python-brace-format
+msgid "No file in release {tag} matches the pattern {pattern}"
+msgstr "Nessun file della release {tag} corrisponde allo schema {pattern}"
+
+#: src/tarseer/core/manager.py:238
+#, python-brace-format
+msgid "Could not create the app grid entry for {name}: {error}"
+msgstr ""
+"Impossibile creare la voce nella griglia delle applicazioni per {name}: "
+"{error}"
+
+#: src/tarseer/core/manager.py:248
+#, python-brace-format
+msgid ""
+"{name} was updated to {tag}, but its settings could not be saved ({error}). "
+"After a restart it may show the old version."
+msgstr ""
+"{name} è stato aggiornato a {tag}, ma non è stato possibile salvarne le "
+"impostazioni ({error}). Dopo un riavvio potrebbe mostrare la versione "
+"precedente."
+
+#: src/tarseer/core/manager.py:254 src/tarseer/core/manager.py:386
+#, python-brace-format
+msgid "Could not save settings: {error}"
+msgstr "Impossibile salvare le impostazioni: {error}"
+
+#: src/tarseer/core/manager.py:282
+msgid "{name!r} can't be used in an app grid entry"
+msgstr ""
+"{name!r} non può essere usato in una voce della griglia delle applicazioni"
+
+#: src/tarseer/core/manager.py:285
+#, python-brace-format
+msgid "{name} is not a file inside {folder}"
+msgstr "{name} non è un file all'interno di {folder}"
+
+#: src/tarseer/core/manager.py:296
+msgid "The name cannot be empty"
+msgstr "Il nome non può essere vuoto"
+
+#: src/tarseer/core/manager.py:379
+#, python-brace-format
+msgid "Could not update the app grid entry for {name}: {error}"
+msgstr ""
+"Impossibile aggiornare la voce nella griglia delle applicazioni per {name}: "
+"{error}"
+
+#: src/tarseer/main.py:53
+msgid "Start without a window and check for updates in the background"
+msgstr "Avvia senza finestra e controlla gli aggiornamenti in background"
+
+#: src/tarseer/main.py:55
+msgid "With --background: check right away (for testing)"
+msgstr "Con --background: controlla subito (per i test)"
+
+#: src/tarseer/main.py:199
+msgid "Update Available"
+msgstr "Aggiornamento disponibile"
+
+#: src/tarseer/main.py:200
+#, python-brace-format
+msgid "{app} {tag}"
+msgstr "{app} {tag}"
+
+#: src/tarseer/main.py:203
+#, python-brace-format
+msgid "{n} Update Available"
+msgid_plural "{n} Updates Available"
+msgstr[0] "{n} aggiornamento disponibile"
+msgstr[1] "{n} aggiornamenti disponibili"
+
+#: src/tarseer/main.py:209
+#, python-brace-format
+msgid "{names} and {n} more"
+msgid_plural "{names} and {n} more"
+msgstr[0] "{names} e un'altra"
+msgstr[1] "{names} e altre {n}"
+
+#. Translators: your name(s) and e-mail, one per line; shown in About.
+#: src/tarseer/main.py:243
+msgid "translator-credits"
+msgstr "Davide Botter"
+
+#: src/tarseer/ui/add_dialog.blp:7 src/tarseer/ui/add_dialog.blp:15
+#: src/tarseer/ui/window.blp:17
+msgid "Add App"
+msgstr "Aggiungi applicazione"
+
+#: src/tarseer/ui/add_dialog.blp:24
+msgid ""
+"Enter a GitHub repository that publishes Linux tarballs in its releases."
+msgstr ""
+"Inserisci un repository GitHub che pubblica tarball per Linux nelle sue "
+"release."
+
+#: src/tarseer/ui/add_dialog.blp:27
+msgid "Repository (owner/name or URL)"
+msgstr "Repository (proprietario/nome o URL)"
+
+#: src/tarseer/ui/add_dialog.blp:35 src/tarseer/ui/add_dialog.py:92
+msgid "_Continue"
+msgstr "_Continua"
+
+#: src/tarseer/ui/add_dialog.blp:52
+msgid "Choose File"
+msgstr "Scegli il file"
+
+#: src/tarseer/ui/add_dialog.blp:62 src/tarseer/ui/details_dialog.blp:97
+msgid "Name"
+msgstr "Nome"
+
+#: src/tarseer/ui/add_dialog.blp:68 src/tarseer/ui/release_file_dialog.blp:17
+msgid "Release File"
+msgstr "File della release"
+
+#: src/tarseer/ui/add_dialog.blp:73
+msgid "_Install"
+msgstr "_Installa"
+
+#: src/tarseer/ui/add_dialog.blp:90
+msgid "Installing"
+msgstr "Installazione"
+
+#: src/tarseer/ui/add_dialog.blp:102 src/tarseer/ui/app_row.py:172
+msgid "Installing…"
+msgstr "Installazione…"
+
+#: src/tarseer/ui/add_dialog.blp:114 src/tarseer/ui/details_dialog.py:356
+msgid "_Cancel"
+msgstr "_Annulla"
+
+#: src/tarseer/ui/add_dialog.blp:130 src/tarseer/ui/add_dialog.blp:170
+#: src/tarseer/ui/details_dialog.blp:80
+msgid "App Grid Entry"
+msgstr "Voce nella griglia delle applicazioni"
+
+#: src/tarseer/ui/add_dialog.blp:171
+msgid ""
+"Tarseer picked these automatically. Change them if the app doesn't start or "
+"shows the wrong icon."
+msgstr ""
+"Tarseer li ha scelti automaticamente. Cambiali se l'applicazione non si "
+"avvia o mostra l'icona sbagliata."
+
+#: src/tarseer/ui/add_dialog.blp:174 src/tarseer/ui/details_dialog.blp:83
+msgid "Program"
+msgstr "Programma"
+
+#: src/tarseer/ui/add_dialog.blp:179 src/tarseer/ui/details_dialog.blp:88
+msgid "Icon"
+msgstr "Icona"
+
+#: src/tarseer/ui/add_dialog.blp:187
+msgid "_Done"
+msgstr "_Fatto"
+
+#: src/tarseer/ui/add_dialog.py:80 src/tarseer/ui/details_dialog.py:147
+msgid "Enter a repository like “owner/name” or a github.com link"
+msgstr ""
+"Inserisci un repository come «proprietario/nome» o un link a github.com"
+
+#: src/tarseer/ui/add_dialog.py:84
+#, python-brace-format
+msgid "{repo} is already installed as “{name}”"
+msgstr "{repo} è già installato come «{name}»"
+
+#: src/tarseer/ui/add_dialog.py:88
+msgid "Looking up releases…"
+msgstr "Ricerca delle release…"
+
+#: src/tarseer/ui/add_dialog.py:101 src/tarseer/ui/details_dialog.py:218
+msgid "Could Not Look Up Releases"
+msgstr "Impossibile cercare le release"
+
+#: src/tarseer/ui/add_dialog.py:108
+#, python-brace-format
+msgid "Release {tag} of {repo} has no tarball files"
+msgstr "La release {tag} di {repo} non contiene file tarball"
+
+#: src/tarseer/ui/add_dialog.py:112
+#, python-brace-format
+msgid "From release {tag}. The best match for this computer is preselected."
+msgstr ""
+"Dalla release {tag}. Il file più adatto a questo computer è già selezionato."
+
+#: src/tarseer/ui/add_dialog.py:142
+#, python-brace-format
+msgid "Installing {name}…"
+msgstr "Installazione di {name}…"
+
+#: src/tarseer/ui/add_dialog.py:143 src/tarseer/ui/app_row.py:154
+msgid "Downloading…"
+msgstr "Scaricamento…"
+
+#: src/tarseer/ui/add_dialog.py:151 src/tarseer/ui/app_row.py:161
+#, python-brace-format
+msgid "Downloading {done} of {total}"
+msgstr "Scaricamento: {done} di {total}"
+
+#: src/tarseer/ui/add_dialog.py:160
+msgid "Extracting…"
+msgstr "Estrazione…"
+
+#: src/tarseer/ui/add_dialog.py:173
+msgid "Installation cancelled"
+msgstr "Installazione annullata"
+
+#: src/tarseer/ui/add_dialog.py:175
+msgid "Installation Failed"
+msgstr "Installazione non riuscita"
+
+#: src/tarseer/ui/add_dialog.py:185 src/tarseer/ui/app_row.py:216
+msgid "Cancelling…"
+msgstr "Annullamento…"
+
+#: src/tarseer/ui/add_dialog.py:192
+#, python-brace-format
+msgid "{tag} installed in {path}"
+msgstr "{tag} installato in {path}"
+
+#: src/tarseer/ui/add_dialog.py:194
+msgid "Looking for programs and icons…"
+msgstr "Ricerca di programmi e icone…"
+
+#: src/tarseer/ui/alerts.py:12
+msgid "Needs Your Attention"
+msgstr "Serve la tua attenzione"
+
+#: src/tarseer/ui/alerts.py:15 src/tarseer/ui/alerts.py:22
+msgid "_OK"
+msgstr "_OK"
+
+#: src/tarseer/ui/app_row.blp:9
+msgid "Show details"
+msgstr "Mostra i dettagli"
+
+#: src/tarseer/ui/app_row.blp:31
+msgid "Checking for updates…"
+msgstr "Controllo degli aggiornamenti…"
+
+#: src/tarseer/ui/app_row.blp:38
+msgid "Update"
+msgstr "Aggiorna"
+
+#: src/tarseer/ui/app_row.blp:51
+msgid "Queued"
+msgstr "In coda"
+
+#: src/tarseer/ui/app_row.blp:52
+msgid "Waits for the other updates to finish"
+msgstr "Attende che finiscano gli altri aggiornamenti"
+
+#: src/tarseer/ui/app_row.blp:72
+msgid "Cancel Download"
+msgstr "Annulla lo scaricamento"
+
+#: src/tarseer/ui/app_row.blp:88
+msgid "Up to date"
+msgstr "Aggiornato"
+
+#: src/tarseer/ui/app_row.py:54 src/tarseer/ui/details_dialog.py:79
+#: src/tarseer/ui/details_dialog.py:82
+msgid "Unknown version"
+msgstr "Versione sconosciuta"
+
+#: src/tarseer/ui/app_row.py:184
+#, python-brace-format
+msgid "{app} {tag} reinstalled"
+msgstr "{app} {tag} reinstallato"
+
+#: src/tarseer/ui/app_row.py:185
+#, python-brace-format
+msgid "{app} updated to {tag}"
+msgstr "{app} aggiornato a {tag}"
+
+#: src/tarseer/ui/app_row.py:195
+#, python-brace-format
+msgid "{app} update cancelled"
+msgstr "Aggiornamento di {app} annullato"
+
+#: src/tarseer/ui/app_row.py:200
+#, python-brace-format
+msgid "Could Not Update {app}"
+msgstr "Impossibile aggiornare {app}"
+
+#: src/tarseer/ui/asset_list.py:38
+msgid "Current"
+msgstr "Attuale"
+
+#: src/tarseer/ui/background.py:108
+msgid "Checking for updates"
+msgstr "Controllo degli aggiornamenti"
+
+#: src/tarseer/ui/background.py:111
+#, python-brace-format
+msgid "Checks for updates every hour"
+msgid_plural "Checks for updates every {n} hours"
+msgstr[0] "Controlla gli aggiornamenti ogni ora"
+msgstr[1] "Controlla gli aggiornamenti ogni {n} ore"
+
+#: src/tarseer/ui/background.py:114
+msgid "Checks for updates periodically"
+msgstr "Controlla gli aggiornamenti periodicamente"
+
+#: src/tarseer/ui/details_dialog.blp:17
+msgid "An update is in progress. Changes are unavailable until it finishes."
+msgstr ""
+"È in corso un aggiornamento. Le modifiche non sono disponibili finché non "
+"termina."
+
+#: src/tarseer/ui/details_dialog.blp:49
+msgid "Version"
+msgstr "Versione"
+
+#: src/tarseer/ui/details_dialog.blp:52
+msgid "Installed"
+msgstr "Installata"
+
+#: src/tarseer/ui/details_dialog.blp:61
+msgid "Previous"
+msgstr "Precedente"
+
+#: src/tarseer/ui/details_dialog.blp:70
+msgid "_Restore"
+msgstr "_Ripristina"
+
+#: src/tarseer/ui/details_dialog.blp:73
+msgid "Switch back to the previous version. You can switch again afterwards."
+msgstr "Torna alla versione precedente. Potrai cambiare di nuovo in seguito."
+
+#: src/tarseer/ui/details_dialog.blp:94
+msgid "General"
+msgstr "Generale"
+
+#: src/tarseer/ui/details_dialog.blp:103
+msgid "GitHub Repository"
+msgstr "Repository GitHub"
+
+#: src/tarseer/ui/details_dialog.blp:109
+msgid "Release File Pattern"
+msgstr "Schema del file della release"
+
+#: src/tarseer/ui/details_dialog.blp:119
+msgid "_Change…"
+msgstr "_Cambia…"
+
+#: src/tarseer/ui/details_dialog.blp:122
+msgid "Choose another file from the latest release"
+msgstr "Scegli un altro file dall'ultima release"
+
+#: src/tarseer/ui/details_dialog.blp:129
+msgid "Files"
+msgstr "File"
+
+#: src/tarseer/ui/details_dialog.blp:132
+msgid "Install Folder"
+msgstr "Cartella di installazione"
+
+#: src/tarseer/ui/details_dialog.blp:143
+msgid "Open Folder"
+msgstr "Apri la cartella"
+
+#: src/tarseer/ui/details_dialog.blp:156
+msgid "_Remove App"
+msgstr "_Rimuovi l'applicazione"
+
+#: src/tarseer/ui/details_dialog.py:119
+#, python-brace-format
+msgid ""
+"{name} is busy with another operation, so nothing was changed. Try again "
+"when it has finished."
+msgstr ""
+"{name} è impegnato in un'altra operazione, quindi non è stato cambiato "
+"nulla. Riprova quando avrà finito."
+
+#: src/tarseer/ui/details_dialog.py:136
+msgid "Name Not Changed"
+msgstr "Nome non cambiato"
+
+#. The new repository names its files differently: pick the file again.
+#: src/tarseer/ui/details_dialog.py:164
+#, python-brace-format
+msgid ""
+"No file in this repository's latest release matches the one {name} used "
+"before. Choose the file to download from now on."
+msgstr ""
+"Nessun file nell'ultima release di questo repository corrisponde a quello "
+"usato prima da {name}. Scegli il file da scaricare d'ora in poi."
+
+#: src/tarseer/ui/details_dialog.py:174 src/tarseer/ui/details_dialog.py:185
+#: src/tarseer/ui/details_dialog.py:198
+msgid "Repository Not Changed"
+msgstr "Repository non cambiato"
+
+#: src/tarseer/ui/details_dialog.py:180
+msgid "Repository not changed"
+msgstr "Repository non cambiato"
+
+#: src/tarseer/ui/details_dialog.py:191
+msgid "Repository changed"
+msgstr "Repository cambiato"
+
+#: src/tarseer/ui/details_dialog.py:228
+msgid "No Usable Files"
+msgstr "Nessun file utilizzabile"
+
+#: src/tarseer/ui/details_dialog.py:229
+#, python-brace-format
+msgid "Release {tag} of {repo} has no tarball files."
+msgstr "La release {tag} di {repo} non contiene file tarball."
+
+#: src/tarseer/ui/details_dialog.py:240 src/tarseer/ui/details_dialog.py:254
+msgid "Release File Not Changed"
+msgstr "File della release non cambiato"
+
+#: src/tarseer/ui/details_dialog.py:250 src/tarseer/ui/details_dialog.py:280
+msgid "Release file changed. It is used from the next update."
+msgstr "File della release cambiato. Verrà usato dal prossimo aggiornamento."
+
+#: src/tarseer/ui/details_dialog.py:260
+#, python-brace-format
+msgid ""
+"{tag} is already the latest version, so the new release file would only be "
+"used from the next update."
+msgstr ""
+"{tag} è già la versione più recente, quindi il nuovo file della release "
+"verrebbe usato solo dal prossimo aggiornamento."
+
+#. Reinstalling keeps the backup: it holds an older version than the current files.
+#: src/tarseer/ui/details_dialog.py:264 src/tarseer/ui/details_dialog.py:295
+msgid "the previous version"
+msgstr "la versione precedente"
+
+#: src/tarseer/ui/details_dialog.py:265
+#, python-brace-format
+msgid ""
+"Reinstalling downloads it now and replaces the current files. You can still "
+"roll back to {previous}."
+msgstr ""
+"Reinstallando, il file viene scaricato subito e sostituisce i file attuali. "
+"Potrai comunque tornare a {previous}."
+
+#: src/tarseer/ui/details_dialog.py:268
+msgid ""
+"Reinstalling downloads it now. The current files are kept as the previous "
+"version, so you can roll back to them."
+msgstr ""
+"Reinstallando, il file viene scaricato subito. I file attuali vengono "
+"conservati come versione precedente, quindi potrai tornare a quelli."
+
+#: src/tarseer/ui/details_dialog.py:270
+#, python-brace-format
+msgid "Reinstall {name} Now?"
+msgstr "Reinstallare {name} ora?"
+
+#: src/tarseer/ui/details_dialog.py:272
+msgid "_Later"
+msgstr "_Più tardi"
+
+#: src/tarseer/ui/details_dialog.py:273
+msgid "_Reinstall"
+msgstr "_Reinstalla"
+
+#: src/tarseer/ui/details_dialog.py:285
+#, python-brace-format
+msgid "{name} Not Reinstalled"
+msgstr "{name} non reinstallato"
+
+#: src/tarseer/ui/details_dialog.py:300
+#, python-brace-format
+msgid "Switched to {tag}"
+msgstr "Passato a {tag}"
+
+#: src/tarseer/ui/details_dialog.py:307
+msgid "Could Not Switch Versions"
+msgstr "Impossibile cambiare versione"
+
+#. the user cancelled an app chooser
+#: src/tarseer/ui/details_dialog.py:342
+msgid "Could Not Open the Folder"
+msgstr "Impossibile aprire la cartella"
+
+#: src/tarseer/ui/details_dialog.py:351
+#, python-brace-format
+msgid "Remove {name}?"
+msgstr "Rimuovere {name}?"
+
+#: src/tarseer/ui/details_dialog.py:352
+#, python-brace-format
+msgid ""
+"This deletes {folder}, its previous version and its app grid entry.\n"
+"\n"
+"Settings and data the app keeps elsewhere (for example in ~/.config) are not "
+"touched."
+msgstr ""
+"Verranno eliminati {folder}, la sua versione precedente e la sua voce nella "
+"griglia delle applicazioni.\n"
+"\n"
+"Le impostazioni e i dati che l'applicazione conserva altrove (per esempio in "
+"~/.config) non vengono toccati."
+
+#: src/tarseer/ui/details_dialog.py:357
+msgid "_Remove"
+msgstr "_Rimuovi"
+
+#: src/tarseer/ui/details_dialog.py:374
+#, python-brace-format
+msgid "{name} removed"
+msgstr "{name} rimosso"
+
+#: src/tarseer/ui/details_dialog.py:381
+#, python-brace-format
+msgid "Could Not Remove {name}"
+msgstr "Impossibile rimuovere {name}"
+
+#: src/tarseer/ui/launcher_choices.py:58
+msgid "No programs found, so there is no app grid entry"
+msgstr ""
+"Nessun programma trovato, quindi non c'è una voce nella griglia delle "
+"applicazioni"
+
+#: src/tarseer/ui/launcher_choices.py:61
+msgid "Generic icon"
+msgstr "Icona generica"
+
+#: src/tarseer/ui/preferences_dialog.blp:7
+msgid "Preferences"
+msgstr "Preferenze"
+
+#: src/tarseer/ui/preferences_dialog.blp:12
+msgid "Updates"
+msgstr "Aggiornamenti"
+
+#: src/tarseer/ui/preferences_dialog.blp:15
+msgid "Check in the _Background"
+msgstr "Controlla in _background"
+
+#: src/tarseer/ui/preferences_dialog.blp:17
+msgid ""
+"Tarseer starts without a window when you log in and notifies you about new "
+"updates"
+msgstr ""
+"Tarseer si avvia senza finestra all'accesso e ti avvisa dei nuovi "
+"aggiornamenti"
+
+#: src/tarseer/ui/preferences_dialog.blp:21
+msgid "_Frequency"
+msgstr "_Frequenza"
+
+#: src/tarseer/ui/preferences_dialog.blp:27
+msgid "At login only"
+msgstr "Solo all'accesso"
+
+#: src/tarseer/ui/preferences_dialog.blp:28
+msgid "Every 6 hours"
+msgstr "Ogni 6 ore"
+
+#: src/tarseer/ui/preferences_dialog.blp:29
+msgid "Every 12 hours"
+msgstr "Ogni 12 ore"
+
+#: src/tarseer/ui/preferences_dialog.blp:30
+msgid "Once a day"
+msgstr "Una volta al giorno"
+
+#: src/tarseer/ui/preferences_dialog.blp:36
+msgid "Last Checked"
+msgstr "Ultimo controllo"
+
+#: src/tarseer/ui/preferences_dialog.blp:46
+msgid "GitHub Access Token"
+msgstr "Token di accesso GitHub"
+
+#: src/tarseer/ui/preferences_dialog.blp:47
+msgid ""
+"Without a token, GitHub allows 60 requests per hour and every update check "
+"uses one per app. A token raises the limit to 5,000. It only needs to read "
+"public repositories: a fine-grained token with no extra permissions is "
+"enough."
+msgstr ""
+"Senza token, GitHub consente 60 richieste all'ora e ogni controllo degli "
+"aggiornamenti ne usa una per applicazione. Un token alza il limite a 5.000. "
+"Deve solo leggere i repository pubblici: basta un token «fine-grained» senza "
+"permessi aggiuntivi."
+
+#: src/tarseer/ui/preferences_dialog.blp:50
+#: src/tarseer/ui/preferences_dialog.py:128
+msgid "Access Token"
+msgstr "Token di accesso"
+
+#: src/tarseer/ui/preferences_dialog.blp:56
+msgid "Requests Left This Hour"
+msgstr "Richieste rimaste in quest'ora"
+
+#: src/tarseer/ui/preferences_dialog.blp:70
+msgid "_Create a Token on GitHub"
+msgstr "_Crea un token su GitHub"
+
+#: src/tarseer/ui/preferences_dialog.blp:72
+msgid "Opens github.com in your browser"
+msgstr "Apre github.com nel browser"
+
+#: src/tarseer/ui/preferences_dialog.blp:83
+msgid "_Remove Token"
+msgstr "_Rimuovi il token"
+
+#: src/tarseer/ui/preferences_dialog.py:47
+msgid "Reading the saved token from your keyring…"
+msgstr "Lettura del token salvato dal portachiavi…"
+
+#: src/tarseer/ui/preferences_dialog.py:67
+msgid "Never"
+msgstr "Mai"
+
+#: src/tarseer/ui/preferences_dialog.py:73
+#, python-brace-format
+msgid "Today at {time}"
+msgstr "Oggi alle {time}"
+
+#: src/tarseer/ui/preferences_dialog.py:75
+#, python-brace-format
+msgid "Yesterday at {time}"
+msgstr "Ieri alle {time}"
+
+#: src/tarseer/ui/preferences_dialog.py:77
+#, python-brace-format
+msgid "{date} at {time}"
+msgstr "{date} alle {time}"
+
+#: src/tarseer/ui/preferences_dialog.py:94
+#, python-brace-format
+msgid "The request to run in the background failed: {error}"
+msgstr "La richiesta di esecuzione in background non è riuscita: {error}"
+
+#: src/tarseer/ui/preferences_dialog.py:96
+msgid ""
+"Tarseer isn't allowed to run in the background. You can allow it in Settings "
+"→ Apps → Tarseer."
+msgstr ""
+"Tarseer non ha il permesso di essere eseguito in background. Puoi concederlo "
+"in Impostazioni → App → Tarseer."
+
+#: src/tarseer/ui/preferences_dialog.py:98
+msgid "Background Checks Not Turned On"
+msgstr "Controlli in background non attivati"
+
+#: src/tarseer/ui/preferences_dialog.py:108
+msgid "Check for app updates when you log in"
+msgstr "Controlla gli aggiornamenti delle applicazioni all'accesso"
+
+#: src/tarseer/ui/preferences_dialog.py:128
+msgid "Replace Token"
+msgstr "Sostituisci il token"
+
+#: src/tarseer/ui/preferences_dialog.py:136
+#, python-brace-format
+msgid "Could not check: {error}"
+msgstr "Impossibile verificare: {error}"
+
+#: src/tarseer/ui/preferences_dialog.py:144
+#, python-brace-format
+msgid "{remaining} of {limit} · resets at {time}"
+msgstr "{remaining} di {limit} · si azzera alle {time}"
+
+#: src/tarseer/ui/preferences_dialog.py:154
+msgid "Could Not Open the Browser"
+msgstr "Impossibile aprire il browser"
+
+#: src/tarseer/ui/preferences_dialog.py:175
+msgid "Could Not Save the Token"
+msgstr "Impossibile salvare il token"
+
+#: src/tarseer/ui/preferences_dialog.py:176
+#, python-brace-format
+msgid "The token is valid, but it could not be stored in your keyring: {error}"
+msgstr ""
+"Il token è valido, ma non è stato possibile salvarlo nel portachiavi: {error}"
+
+#: src/tarseer/ui/preferences_dialog.py:185
+msgid "Token saved"
+msgstr "Token salvato"
+
+#: src/tarseer/ui/preferences_dialog.py:191
+msgid ""
+"GitHub rejected this token. Check that it was copied completely and hasn't "
+"expired."
+msgstr ""
+"GitHub ha rifiutato questo token. Controlla che sia stato copiato per intero "
+"e che non sia scaduto."
+
+#: src/tarseer/ui/preferences_dialog.py:193
+msgid "Token Not Saved"
+msgstr "Token non salvato"
+
+#: src/tarseer/ui/preferences_dialog.py:204
+msgid "Could Not Remove the Token"
+msgstr "Impossibile rimuovere il token"
+
+#: src/tarseer/ui/preferences_dialog.py:210
+msgid "Token removed"
+msgstr "Token rimosso"
+
+#: src/tarseer/ui/release_file_dialog.blp:7
+msgid "Choose Release File"
+msgstr "Scegli il file della release"
+
+#: src/tarseer/ui/release_file_dialog.blp:22
+msgid "_Use This File"
+msgstr "_Usa questo file"
+
+#: src/tarseer/ui/release_file_dialog.py:31
+#, python-brace-format
+msgid "From release {tag} of {repo}."
+msgstr "Dalla release {tag} di {repo}."
+
+#: src/tarseer/ui/window.blp:24
+msgid "Check for Updates"
+msgstr "Controlla gli aggiornamenti"
+
+#: src/tarseer/ui/window.blp:32
+msgid "Main Menu"
+msgstr "Menu principale"
+
+#: src/tarseer/ui/window.blp:38 src/tarseer/ui/window.py:175
+msgid "_Update All"
+msgstr "Aggiorna _tutto"
+
+#: src/tarseer/ui/window.blp:40 src/tarseer/ui/window.py:177
+msgid "Update every app with an available update, one after another"
+msgstr ""
+"Aggiorna una dopo l'altra tutte le applicazioni con un aggiornamento "
+"disponibile"
+
+#: src/tarseer/ui/window.blp:58
+msgid "No Apps Yet"
+msgstr "Ancora nessuna applicazione"
+
+#: src/tarseer/ui/window.blp:59
+msgid ""
+"Add a GitHub repository to install its tarball releases and keep them up to "
+"date"
+msgstr ""
+"Aggiungi un repository GitHub per installare le sue release in tarball e "
+"mantenerle aggiornate"
+
+#: src/tarseer/ui/window.blp:62
+msgid "_Add App"
+msgstr "_Aggiungi applicazione"
+
+#: src/tarseer/ui/window.blp:103
+msgid "Could Not Load Your Apps"
+msgstr "Impossibile caricare le tue applicazioni"
+
+#: src/tarseer/ui/window.blp:114
+msgid "_Preferences"
+msgstr "_Preferenze"
+
+#: src/tarseer/ui/window.blp:119
+msgid "_About Tarseer"
+msgstr "_Informazioni su Tarseer"
+
+#: src/tarseer/ui/window.py:170
+msgid "_Stop"
+msgstr "_Ferma"
+
+#: src/tarseer/ui/window.py:171
+msgid "Cancel the current download and skip the remaining updates"
+msgstr "Annulla lo scaricamento in corso e salta gli aggiornamenti rimanenti"
+
+#: src/tarseer/ui/window.py:210
+#, python-brace-format
+msgid "{name} installed"
+msgstr "{name} installato"
+
+#: src/tarseer/ui/window.py:236
+msgid "Already checking for updates in the background"
+msgstr "Controllo degli aggiornamenti già in corso in background"
+
+#. Same for every app and the user has to act: shown once per check.
+#: src/tarseer/ui/window.py:265
+msgid "GitHub Rate Limit Reached"
+msgstr "Raggiunto il limite di richieste di GitHub"
+
+#: src/tarseer/ui/window.py:267
+msgid "Access Token Rejected"
+msgstr "Token di accesso rifiutato"
+
+#: src/tarseer/ui/window.py:269 src/tarseer/ui/window.py:340
+#, python-brace-format
+msgid "{app}: {error}"
+msgstr "{app}: {error}"
+
+#: src/tarseer/ui/window.py:279
+msgid "Could Not Check for Updates"
+msgstr "Impossibile controllare gli aggiornamenti"
+
+#: src/tarseer/ui/window.py:289
+#, python-brace-format
+msgid "{n} update available"
+msgid_plural "{n} updates available"
+msgstr[0] "{n} aggiornamento disponibile"
+msgstr[1] "{n} aggiornamenti disponibili"
+
+#: src/tarseer/ui/window.py:291
+msgid "All apps are up to date"
+msgstr "Tutte le applicazioni sono aggiornate"
+
+#: src/tarseer/ui/window.py:343
+msgid "Updates stopped"
+msgstr "Aggiornamenti interrotti"
+
+#: src/tarseer/ui/window.py:345
+#, python-brace-format
+msgid "Updates stopped after {n} app"
+msgid_plural "Updates stopped after {n} apps"
+msgstr[0] "Aggiornamenti interrotti dopo {n} applicazione"
+msgstr[1] "Aggiornamenti interrotti dopo {n} applicazioni"
+
+#: src/tarseer/ui/window.py:348
+#, python-brace-format
+msgid "{n} app updated"
+msgid_plural "{n} apps updated"
+msgstr[0] "{n} applicazione aggiornata"
+msgstr[1] "{n} applicazioni aggiornate"
+
+#: src/tarseer/ui/window.py:352
+#, python-brace-format
+msgid "{n} Update Failed"
+msgid_plural "{n} Updates Failed"
+msgstr[0] "{n} aggiornamento non riuscito"
+msgstr[1] "{n} aggiornamenti non riusciti"

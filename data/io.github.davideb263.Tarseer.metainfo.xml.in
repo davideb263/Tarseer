@@ -3,7 +3,7 @@
   <id>io.github.davideb263.Tarseer</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
-  <name>Tarseer</name>
+  <name translate="no">Tarseer</name>
   <summary>Install and update tarball apps from GitHub</summary>
   <description>
     <p>
@@ -12,7 +12,7 @@
     </p>
   </description>
   <developer id="io.github.davideb263">
-    <name>Davide Botter</name>
+    <name translate="no">Davide Botter</name>
   </developer>
   <url type="homepage">https://github.com/davideb263/Tarseer</url>
   <url type="bugtracker">https://github.com/davideb263/Tarseer/issues</url>
@@ -21,7 +21,7 @@
   <content_rating type="oars-1.1"/>
   <releases>
     <release version="0.3.0" date="2026-11-24">
-      <description>
+      <description translate="no">
         <p>Tarseer can now check for updates on its own and tell you when there are new versions.</p>
         <ul>
           <li>Optional background checks: at login only, or every 6 hours, 12 hours or once a day</li>
@@ -33,7 +33,7 @@
       </description>
     </release>
     <release version="0.2.1" date="2026-11-24">
-      <description>
+      <description translate="no">
         <p>Bug fixes and security hardening.</p>
         <ul>
           <li>Downloads are checked against the size and checksum GitHub publishes, and only HTTPS is used</li>
@@ -46,7 +46,7 @@
       </description>
     </release>
     <release version="0.2.0" date="2026-11-24">
-      <description>
+      <description translate="no">
         <p>Updating many apps is now one click, and you stay in control of it.</p>
         <ul>
           <li>Update All updates every app with an available update, one after another</li>

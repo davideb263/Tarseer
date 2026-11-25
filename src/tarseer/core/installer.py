@@ -16,6 +16,8 @@ import tarfile
 import tempfile
 from pathlib import Path
 
+from .i18n import _
+
 
 class InstallError(Exception):
     pass
@@ -75,11 +77,11 @@ def extract_tarball(archive: Path, dest: Path) -> None:
         with tarfile.open(archive, mode="r:*") as tf:
             tf.extractall(dest, filter=data_with_budget)
     except _TooLarge:
-        raise InstallError("Not enough disk space to unpack the archive") from None
+        raise InstallError(_("Not enough disk space to unpack the archive")) from None
     except tarfile.FilterError as e:
-        raise InstallError(f"Archive contains an unsafe file: {e}") from e
+        raise InstallError(_("Archive contains an unsafe file: {error}").format(error=e)) from e
     except (tarfile.TarError, EOFError, OSError) as e:
-        raise InstallError(f"Could not extract archive: {e}") from e
+        raise InstallError(_("Could not extract archive: {error}").format(error=e)) from e
 
 
 def _check_links(root: Path) -> None:
@@ -92,7 +94,8 @@ def _check_links(root: Path) -> None:
             path = Path(dirpath, name)
             if path.is_symlink() and not path.resolve().is_relative_to(real_root):
                 rel = path.relative_to(root).as_posix()
-                raise InstallError(f"Archive contains an unsafe file: {rel!r} links outside the app folder")
+                raise InstallError(
+                    _("Archive contains an unsafe file: {name!r} links outside the app folder").format(name=rel))
 
 
 def _content_root(extracted: Path) -> Path:
@@ -123,7 +126,7 @@ def install_archive(archive: Path, target: Path, keep_backup: bool = False) -> b
         extract_tarball(archive, extracted)
         root = _content_root(extracted)
         if not any(root.iterdir()):
-            raise InstallError("Archive is empty")
+            raise InstallError(_("Archive is empty"))
         _check_links(root)
         # Owner must be able to enter/read the top folder whatever the archive says.
         root.chmod(0o755)
@@ -154,7 +157,7 @@ def install_archive(archive: Path, target: Path, keep_backup: bool = False) -> b
                 os.rename(old_backup, backup)
             if discarded_current:
                 os.rename(old_current, target)
-            raise InstallError(f"Could not move new version into place: {e}") from e
+            raise InstallError(_("Could not move new version into place: {error}").format(error=e)) from e
         return replace_backup
     finally:
         shutil.rmtree(staging, ignore_errors=True)
@@ -165,7 +168,7 @@ def rollback(target: Path) -> None:
     _recover(target)
     backup = backup_path(target)
     if not backup.is_dir():
-        raise InstallError("No previous version to roll back to")
+        raise InstallError(_("No previous version to roll back to"))
     swap = _swap_path(target)
     had_current = target.exists()
     if had_current:
@@ -175,14 +178,14 @@ def rollback(target: Path) -> None:
     except OSError as e:
         if had_current:
             os.rename(swap, target)
-        raise InstallError(f"Could not switch versions: {e}") from e
+        raise InstallError(_("Could not switch versions: {error}").format(error=e)) from e
     if had_current:
         try:
             os.rename(swap, backup)
         except OSError as e:
             os.rename(target, backup)
             os.rename(swap, target)
-            raise InstallError(f"Could not switch versions: {e}") from e
+            raise InstallError(_("Could not switch versions: {error}").format(error=e)) from e
 
 
 def remove(target: Path) -> None:

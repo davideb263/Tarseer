@@ -1,7 +1,8 @@
-desktop_file = configure_file(
+desktop_file = i18n.merge_file(
   input: app_id + '.desktop.in',
   output: app_id + '.desktop',
-  copy: true,
+  type: 'desktop',
+  po_dir: '../po',
   install: true,
   install_dir: get_option('datadir') / 'applications',
 )
@@ -11,10 +12,10 @@ if desktop_utils.found()
   test('Validate desktop file', desktop_utils, args: [desktop_file])
 endif
 
-metainfo_file = configure_file(
+metainfo_file = i18n.merge_file(
   input: app_id + '.metainfo.xml.in',
   output: app_id + '.metainfo.xml',
-  copy: true,
+  po_dir: '../po',
   install: true,
   install_dir: get_option('datadir') / 'metainfo',
 )

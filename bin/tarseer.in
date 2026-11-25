@@ -2,6 +2,7 @@
 """Launcher installed as `tarseer`. Meson fills in the @...@ placeholders."""
 
 import gettext
+import locale
 import os
 import signal
 import sys
@@ -9,11 +10,22 @@ import sys
 VERSION = "@VERSION@"
 APP_ID = "@APP_ID@"
 pkgdatadir = "@pkgdatadir@"
+localedir = "@localedir@"
 
 sys.path.insert(1, pkgdatadir)
 signal.signal(signal.SIGINT, signal.SIG_DFL)
-# Defines the builtins _() and ngettext() used for translatable strings.
-gettext.install("tarseer", names=["ngettext"])
+try:
+    locale.setlocale(locale.LC_ALL, "")
+except locale.Error:
+    pass  # unsupported locale: stay untranslated
+# C side (GtkBuilder, for the Blueprint UI files).
+locale.bindtextdomain("tarseer", localedir)
+locale.textdomain("tarseer")
+# Python side: the default domain for core.i18n, and the builtins _() and
+# ngettext() used by the UI modules.
+gettext.bindtextdomain("tarseer", localedir)
+gettext.textdomain("tarseer")
+gettext.install("tarseer", localedir, names=["ngettext"])
 
 if __name__ == "__main__":
     from gi.repository import Gio

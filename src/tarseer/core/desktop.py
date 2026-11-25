@@ -7,6 +7,7 @@ import re
 import struct
 from pathlib import Path
 
+from .i18n import _
 from .models import ManagedApp
 
 MAX_EXEC_DEPTH = 3
@@ -192,8 +193,9 @@ class DesktopConflictError(Exception):
         self.path = path
         shown = str(path).replace(str(Path.home()), "~", 1)
         super().__init__(
-            f"{shown} already exists and was not created by Tarseer. "
-            f"Remove or rename it so Tarseer can add {app_name} to the app grid."
+            _("{path} already exists and was not created by Tarseer. "
+              "Remove or rename it so Tarseer can add {name} to the app grid.").format(
+                path=shown, name=app_name)
         )
 
 
@@ -216,10 +218,10 @@ def is_owned(path: Path, app_id: str) -> bool:
 
 def render_desktop_entry(app: ManagedApp, install_dir: Path) -> str:
     if not app.executable:
-        raise ValueError("App has no executable set")
+        raise ValueError(_("App has no executable set"))
     for rel in (app.executable, app.icon):
         if rel is not None and not is_safe_relpath(rel):
-            raise ValueError(f"Unusable file name for a menu entry: {rel!r}")
+            raise ValueError(_("Unusable file name for a menu entry: {name!r}").format(name=rel))
     lines = [
         "[Desktop Entry]",
         "Type=Application",

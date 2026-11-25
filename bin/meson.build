@@ -3,6 +3,7 @@ conf.set('PYTHON', python.find_installation('python3').full_path())
 conf.set('VERSION', meson.project_version())
 conf.set('APP_ID', app_id)
 conf.set('pkgdatadir', pkgdatadir)
+conf.set('localedir', get_option('prefix') / get_option('localedir'))
 
 configure_file(
   input: 'tarseer.in',

@@ -154,6 +154,23 @@ mkdir -p "$DEV"
 flatpak run --filesystem="$DEV" --env=TARSEER_DEV_ROOT="$DEV" io.github.davideb263.Tarseer
 ```
 
+## Translations
+
+Tarseer is available in English and Italian. Translations live in `po/`
+(one `<language>.po` per language, listed in `po/LINGUAS`). To add or update
+one, regenerate the template and merge it into the language file:
+
+```sh
+meson setup _build && meson compile -C _build tarseer-pot   # po/tarseer.pot
+msgmerge --update po/<language>.po po/tarseer.pot
+```
+
+Use `msginit -l <language> -i po/tarseer.pot -o po/<language>.po` for a new
+language. `meson compile -C _build tarseer-update-po` merges all of them at once.
+To try a translation, run `flatpak run --env=LANGUAGE=it io.github.davideb263.Tarseer`.
+Flatpak only installs translations for your system languages; add others with
+`flatpak config --user --set extra-languages "it;de"` and reinstall.
+
 ## License
 
 [GPL-3.0-or-later](LICENSE)

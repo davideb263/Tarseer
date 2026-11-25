@@ -7,6 +7,7 @@ import os
 import tempfile
 from pathlib import Path
 
+from .i18n import _
 from .models import ManagedApp, is_valid_id
 
 CONFIG_VERSION = 1
@@ -23,10 +24,10 @@ def load_apps(path: Path) -> list[ManagedApp]:
         data = json.loads(path.read_text(encoding="utf-8"))
         apps = [ManagedApp.from_dict(item) for item in data.get("apps", [])]
     except (OSError, ValueError, TypeError, AttributeError) as e:
-        raise ConfigError(f"Could not read {path}: {e}") from e
+        raise ConfigError(_("Could not read {path}: {error}").format(path=path, error=e)) from e
     for app in apps:
         if not is_valid_id(app.id):
-            raise ConfigError(f"Could not read {path}: invalid app id {app.id!r}")
+            raise ConfigError(_("Could not read {path}: invalid app id {id!r}").format(path=path, id=app.id))
     return apps
 
 

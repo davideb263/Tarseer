@@ -99,10 +99,11 @@ signed with the key in [`data/flatpak/tarseer.gpg`](data/flatpak/tarseer.gpg)
 Bundles from 1.0.2 on update from the repository too.
 
 **Installed a bundle of 1.0.1 or older?** Those don't update. Switch to the
-repository once with `--reinstall` (your apps and settings are kept):
+repository once (your apps and settings are kept):
 
 ```sh
-flatpak install --user --reinstall https://davideb263.github.io/Tarseer/io.github.davideb263.Tarseer.flatpakref
+flatpak remote-add --user --if-not-exists tarseer https://davideb263.github.io/Tarseer/tarseer.flatpakrepo
+flatpak install --user --reinstall tarseer io.github.davideb263.Tarseer
 ```
 
 ## Where things go

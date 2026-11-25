@@ -82,7 +82,7 @@ is asking its maintainer (see the FlatPark item below).
          by a separate job (the only one with `contents: write`); a bundle install
          gets a `tarseer-origin` remote pointing at the repository.
       4. [x] `data/flatpak/`: `.flatpakrepo`, `.flatpakref`, landing `index.html`;
-         README "Installing" rewritten (with the `--reinstall` migration).
+         README "Installing" rewritten (migration: `remote-add` + `install --reinstall tarseer <id>`; `--reinstall` with the .flatpakref refuses an installed app). Davide's install switched 2026-11-25.
       5. [ ] Verify end to end: add the remote, install, then a later release shows
          up in `flatpak update` (and check whether Bazaar lists it).
 
